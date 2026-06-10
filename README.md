@@ -1,2 +1,1 @@
-# africo-cash-monolith-MVP
-MVP africo cash
+# africo-cash

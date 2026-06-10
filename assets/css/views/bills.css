@@ -1,0 +1,4 @@
+.service-grid button:hover {
+  color: var(--color-brand-strong);
+  border-color: var(--color-brand);
+}

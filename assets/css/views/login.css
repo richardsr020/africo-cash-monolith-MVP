@@ -1,0 +1,223 @@
+.auth-page {
+  min-height: 100vh;
+  padding: clamp(1rem, 3vw, 2rem);
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(120deg, rgba(15, 118, 110, 0.14), transparent 36rem),
+    linear-gradient(320deg, rgba(217, 180, 91, 0.22), transparent 34rem),
+    var(--color-bg);
+  overflow: hidden;
+}
+
+.auth-stage {
+  width: min(1180px, 100%);
+  min-height: min(760px, calc(100vh - 4rem));
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.72fr);
+  border: 1px solid color-mix(in srgb, var(--color-border), transparent 28%);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface), transparent 5%);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  animation: auth-stage-in 620ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.auth-visual {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: space-between;
+  min-height: 100%;
+  padding: clamp(1.4rem, 4vw, 3rem);
+  color: #ffffff;
+  overflow: hidden;
+}
+
+.auth-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.12)),
+    url("/assets/img/handsome-man-using-modern-smartphone-outdoors.jpg") center / cover;
+  transform: scale(1.04);
+  animation: auth-photo-drift 14s ease-in-out infinite alternate;
+}
+
+.auth-register .auth-visual::before {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.16)),
+    url("/assets/img/half-length-shot-afro-woman-holds-mobile-phone-enjoys-nice-talk-online-social-networks-reads-funny-article-internet.jpg") center / cover;
+}
+
+.auth-visual::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 44%;
+  z-index: -1;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.58), transparent);
+}
+
+.auth-brand {
+  color: #ffffff;
+}
+
+.auth-visual-copy {
+  max-width: 620px;
+}
+
+.auth-visual-copy h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.auth-visual-copy p:not(.eyebrow) {
+  max-width: 560px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 1.05rem;
+}
+
+.auth-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.auth-signal-grid span {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 54px;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  font-weight: 850;
+}
+
+.auth-card {
+  display: grid;
+  align-content: center;
+  gap: 1.35rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: color-mix(in srgb, var(--color-surface), transparent 0%);
+}
+
+.auth-card-head h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.auth-card-head p:not(.eyebrow),
+.auth-switch {
+  color: var(--color-muted);
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-field {
+  position: relative;
+}
+
+.auth-field i {
+  position: absolute;
+  left: 0.95rem;
+  bottom: 1rem;
+  color: var(--color-brand-strong);
+  pointer-events: none;
+}
+
+.auth-field input {
+  padding-left: 2.7rem;
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--color-muted);
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.auth-row a,
+.auth-switch a {
+  color: var(--color-brand-strong);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.auth-submit {
+  justify-content: space-between;
+  min-height: 54px;
+}
+
+.auth-switch {
+  margin: 0;
+  text-align: center;
+}
+
+@keyframes auth-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auth-photo-drift {
+  from {
+    transform: scale(1.04) translateX(0);
+  }
+
+  to {
+    transform: scale(1.1) translateX(-1.2rem);
+  }
+}
+
+@media (max-width: 900px) {
+  .auth-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-visual {
+    min-height: 430px;
+  }
+}
+
+@media (max-width: 620px) {
+  .auth-page {
+    padding: 0;
+  }
+
+  .auth-stage {
+    min-height: 100vh;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .auth-signal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

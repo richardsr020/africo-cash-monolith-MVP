@@ -1,0 +1,148 @@
+.dab-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 560px) minmax(260px, 360px);
+  align-items: start;
+  gap: 1rem;
+}
+
+.dab-machine {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 72%);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(145deg, #1b2528, #556068 48%, #202a2f),
+    var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+
+.dab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.dab-head span {
+  color: #f4d06f;
+}
+
+.dab-screen {
+  min-height: 220px;
+  padding: 1.2rem;
+  border: 10px solid #121719;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(118, 241, 149, 0.12), transparent),
+    #071311;
+  color: #d6ffe5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  white-space: pre-line;
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.65);
+}
+
+.dab-screen strong {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: #ffffff;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  letter-spacing: 0;
+}
+
+.dab-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.dab-controls button,
+.dab-keypad button {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-sm);
+  background: #eef3f0;
+  color: #111827;
+  font-weight: 900;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.dab-controls button:hover,
+.dab-keypad button:hover {
+  transform: translateY(-2px);
+  background: #ffffff;
+}
+
+.dab-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.dab-keypad .is-danger {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.dab-keypad .is-success {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.dab-slots {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.dab-slots span {
+  display: block;
+  height: 14px;
+  border-radius: 999px;
+  background: #0e1316;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.dab-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.dab-summary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dab-summary div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.dab-summary span {
+  color: var(--color-subtle);
+  font-weight: 800;
+}
+
+.dab-summary strong {
+  text-align: right;
+}
+
+@media (max-width: 980px) {
+  .dab-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .dab-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
