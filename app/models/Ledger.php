@@ -74,6 +74,50 @@ final class Ledger
         ];
     }
 
+    public function findByAtmCode(string $atmCode): ?array
+    {
+        $statement = $this->db->prepare(
+            'SELECT id, transaction_reference, type, amount, currency, fees, total_amount, status, user_id, recipient_name, recipient_account, provider_name, atm_code, metadata, created_at, completed_at '
+            . 'FROM transactions WHERE atm_code = :atm_code ORDER BY created_at DESC LIMIT 1'
+        );
+        $statement->execute([':atm_code' => $atmCode]);
+        $transaction = $statement->fetch();
+
+        return is_array($transaction) ? $transaction : null;
+    }
+
+    public function updateStatus(int $transactionId, string $status): void
+    {
+        if ($status === 'completed') {
+            $statement = $this->db->prepare(
+                'UPDATE transactions SET status = :status, completed_at = CURRENT_TIMESTAMP WHERE id = :id'
+            );
+        } else {
+            $statement = $this->db->prepare(
+                'UPDATE transactions SET status = :status WHERE id = :id'
+            );
+        }
+        $statement->execute([
+            ':status' => $status,
+            ':id' => $transactionId,
+        ]);
+    }
+
+    public function markAtmWithdrawn(int $transactionId): void
+    {
+        $statement = $this->db->prepare('SELECT metadata FROM transactions WHERE id = :id');
+        $statement->execute([':id' => $transactionId]);
+        $row = $statement->fetch();
+        $metadata = $row ? json_decode($row['metadata'] ?: '{}', true) : [];
+        $metadata['dab_withdrawn_at'] = date('Y-m-d H:i:s');
+
+        $update = $this->db->prepare('UPDATE transactions SET metadata = :metadata WHERE id = :id');
+        $update->execute([
+            ':metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ':id' => $transactionId,
+        ]);
+    }
+
     private function findByReference(int $userId, string $reference): ?array
     {
         $statement = $this->db->prepare(

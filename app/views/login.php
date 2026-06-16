@@ -22,7 +22,11 @@
         <h2>Bon retour</h2>
         <p>Utilisez votre email et votre mot de passe pour accéder à votre dashboard.</p>
       </div>
-      <form class="auth-form" data-login-form novalidate>
+<?php $loginError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']); ?>
+      <form class="auth-form" action="" method="post">
+        <?php if ($loginError): ?>
+          <div class="form-feedback form-feedback--error"><?= e($loginError) ?></div>
+        <?php endif; ?>
         <label class="form-field auth-field">
           <span>Email</span>
           <i class="fa-solid fa-envelope" aria-hidden="true"></i>

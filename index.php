@@ -110,6 +110,10 @@ function handle_api_request(string $path): void
 {
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
+    if ($path === '/api/me') {
+        $path = '/api/auth/me';
+    }
+
     if (str_starts_with($path, '/api/auth/')) {
         if (handle_auth_api_request(Database::getInstance()->getConnection(), $path)) {
             return;
@@ -132,7 +136,7 @@ function handle_api_request(string $path): void
         }
     }
 
-    if (!in_array($path, ['/api/dab/withdraw', '/api/ussd/session'], true)) {
+    if (!in_array($path, ['/api/ussd/session'], true)) {
         proxy_backend_request($path);
     }
 
@@ -141,32 +145,6 @@ function handle_api_request(string $path): void
     }
 
     $payload = request_json_body();
-
-    if ($path === '/api/dab/withdraw') {
-        $amount = (int) ($payload['amount'] ?? 0);
-        $currency = strtoupper((string) ($payload['currency'] ?? 'CDF'));
-        $code = preg_replace('/\D+/', '', (string) ($payload['code'] ?? ''));
-        $pin = preg_replace('/\D+/', '', (string) ($payload['pin'] ?? ''));
-        $balances = ['CDF' => 2450000, 'USD' => 860];
-
-        if (!isset($balances[$currency]) || $amount < 1000 || $amount > $balances[$currency] || strlen($code) !== 6 || strlen($pin) !== 4) {
-            json_response([
-                'success' => false,
-                'message' => 'Retrait refusé. Vérifiez le montant, le code et le PIN.',
-            ], 422);
-        }
-
-        json_response([
-            'success' => true,
-            'message' => 'Retrait autorisé. Veuillez prendre vos billets.',
-            'transaction' => [
-                'reference' => 'DAB-' . date('His') . '-' . random_int(100, 999),
-                'amount' => $amount,
-                'currency' => $currency,
-                'remaining_balance' => $balances[$currency] - $amount,
-            ],
-        ]);
-    }
 
     if ($path === '/api/ussd/session') {
         $state = (string) ($payload['state'] ?? 'dial');
@@ -245,6 +223,20 @@ $route = Router::resolve($pages, $_SERVER['REQUEST_URI'] ?? '/', $requestedPage 
 $currentPage = $route['page'];
 $pageKey = $route['key'];
 
+$method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+if ($method === 'POST' && in_array($pageKey, ['login', 'register', 'onboarding'], true)) {
+    $db = Database::getInstance()->getConnection();
+    $authController = new AuthController($db);
+    if ($pageKey === 'login') {
+        $authController->handleLoginForm();
+    } elseif ($pageKey === 'register') {
+        $authController->handleRegisterForm();
+    } else {
+        $authController->handleOnboardingForm();
+    }
+}
+
 $currentUser = null;
 $db = Database::getInstance()->getConnection();
 if (($currentPage['section'] ?? null) === 'app' || $pageKey === 'onboarding') {
@@ -264,6 +256,21 @@ if (($currentPage['section'] ?? null) === 'app' || $pageKey === 'onboarding') {
         header('Location: ' . route_path('dashboard'));
         exit;
     }
+}
+
+if ($method === 'POST' && $currentUser !== null) {
+    if ($pageKey === 'transactions') {
+        if (($_POST['action'] ?? '') === 'send') {
+            (new TransactionController($db))->send();
+        }
+    }
+
+    if ($pageKey === 'banking') {
+        if (($_POST['action'] ?? '') === 'transfer') {
+            (new TransactionController($db))->handleBankTransfer();
+        }
+    }
+
 }
 
 if ($route['status'] !== 200) {

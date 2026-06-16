@@ -22,7 +22,11 @@
         <h2>Créer votre accès</h2>
         <p>Seulement un email et un mot de passe. Votre numéro Africo sera généré automatiquement.</p>
       </div>
-      <form class="auth-form" data-register-page-form novalidate>
+<?php $registerError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']); ?>
+      <form class="auth-form" action="" method="post">
+        <?php if ($registerError): ?>
+          <div class="form-feedback form-feedback--error"><?= e($registerError) ?></div>
+        <?php endif; ?>
         <label class="form-field auth-field">
           <span>Email</span>
           <i class="fa-solid fa-envelope" aria-hidden="true"></i>

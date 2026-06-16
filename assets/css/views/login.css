@@ -126,6 +126,16 @@
   gap: 1rem;
 }
 
+.form-feedback--error {
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-danger), transparent 88%);
+  color: var(--color-danger);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
 .auth-field {
   position: relative;
 }

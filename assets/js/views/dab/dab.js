@@ -13,6 +13,8 @@
     status: "En attente",
     busy: false,
     result: "",
+    phase: null,
+    reference: "",
   };
 
   function money(value) {
@@ -20,14 +22,8 @@
   }
 
   function currentBuffer() {
-    if (state.step === "code") {
-      return state.code;
-    }
-
-    if (state.step === "amount") {
-      return state.amount;
-    }
-
+    if (state.step === "code") return state.code;
+    if (state.step === "amount") return state.amount;
     return state.pin;
   }
 
@@ -36,32 +32,34 @@
       state.code = value.slice(0, 6);
       return;
     }
-
     if (state.step === "amount") {
       state.amount = value.slice(0, 8);
       return;
     }
-
     state.pin = value.slice(0, 4);
   }
 
   function screenText() {
-    if (state.busy) {
+    if (state.busy && state.phase === "dispense") {
+      return "<strong>Distribution des billets</strong>\nVeuillez patienter...\n\n<i class='fa-solid fa-money-bill-wave fa-fade' style='font-size:1.6rem;display:block;text-align:center;margin-top:0.5rem'></i>";
+    }
+
+    if (state.busy && state.phase === "authorize") {
       return "<strong>Traitement...</strong>Connexion API Africo Cash\nValidation du retrait en cours.";
     }
 
-    if (state.result) {
-      return state.result;
+    if (state.busy && state.phase === "confirm") {
+      return "<strong>Finalisation...</strong>Mise à jour du solde en cours.";
     }
+
+    if (state.result) return state.result;
 
     if (state.step === "code") {
       return `<strong>Code de retrait</strong>${state.code.padEnd(6, "-")}\nEntrez le code à 6 chiffres.`;
     }
-
     if (state.step === "amount") {
       return `<strong>Montant</strong>${money(state.amount)}\nChoisissez un montant ou utilisez le clavier.`;
     }
-
     return `<strong>PIN client</strong>${"*".repeat(state.pin.length).padEnd(4, "-")}\nValidez avec OK.`;
   }
 
@@ -70,21 +68,16 @@
     const codeSummary = dom.query('[data-dab-summary="code"]');
     const amountSummary = dom.query('[data-dab-summary="amount"]');
     const statusSummary = dom.query('[data-dab-summary="status"]');
+    const slots = dom.query(".dab-slots");
 
-    if (screen) {
-      screen.innerHTML = screenText();
-    }
+    if (screen) screen.innerHTML = screenText();
 
-    if (codeSummary) {
-      codeSummary.textContent = state.code || "------";
-    }
+    if (codeSummary) codeSummary.textContent = state.code || "------";
+    if (amountSummary) amountSummary.textContent = money(state.amount);
+    if (statusSummary) statusSummary.textContent = state.status;
 
-    if (amountSummary) {
-      amountSummary.textContent = money(state.amount);
-    }
-
-    if (statusSummary) {
-      statusSummary.textContent = state.status;
+    if (slots) {
+      slots.classList.toggle("is-dispensing", state.phase === "dispense");
     }
   }
 
@@ -96,40 +89,76 @@
     state.status = "En attente";
     state.busy = false;
     state.result = "";
+    state.phase = null;
+    state.reference = "";
     render();
   }
 
-  async function submitWithdrawal() {
+  async function phaseAuthorize() {
     state.busy = true;
+    state.phase = "authorize";
     state.status = "Validation";
     render();
 
     try {
-      const response = await api.post("/dab/withdraw", {
+      const response = await api.post("/app/dab/authorize", {
         code: state.code,
         amount: Number(state.amount),
         currency: state.currency,
         pin: state.pin,
       });
-      const transaction = response.data.transaction;
-      state.status = "Approuvé";
-      state.result = `<strong>Retrait approuvé</strong>${response.data.message}\nRéf: ${transaction.reference}\nSolde: ${money(transaction.remaining_balance)}`;
-      dom.showToast("Retrait DAB approuvé.", "success");
+      const result = response.data;
+      state.reference = result.data.reference;
+      state.status = "Autorisé";
+      dom.showToast("Retrait autorisé, distribution des billets...", "success");
+
+      state.phase = "dispense";
+      render();
+
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      await phaseConfirm();
     } catch (error) {
-      const message = error.response?.data?.message || "Retrait refusé par l’API.";
+      const message = error.response?.data?.message || "Retrait refusé par l'API.";
       state.status = "Refusé";
       state.result = `<strong>Retrait refusé</strong>${message}\nAppuyez sur Nouvelle opération.`;
       dom.showToast(message, "error");
-    } finally {
       state.busy = false;
+      state.phase = null;
       render();
     }
   }
 
-  function confirmStep() {
-    if (state.busy || state.result) {
-      return;
+  async function phaseConfirm() {
+    state.busy = true;
+    state.phase = "confirm";
+    state.status = "Finalisation";
+    render();
+
+    try {
+      const response = await api.post("/app/dab/confirm", {
+        code: state.code,
+      });
+      const result = response.data;
+      const txn = result.data.transaction;
+      state.status = "Approuvé";
+      state.phase = null;
+      state.result = `<strong>Retrait effectué</strong>${result.message}\nRéf: ${txn.reference}\nMontant: ${money(txn.amount)}\nSolde: ${money(txn.remaining_balance)}`;
+      dom.showToast("Retrait DAB effectué avec succès.", "success");
+    } catch (error) {
+      const message = error.response?.data?.message || "Erreur lors de la finalisation.";
+      state.status = "Échec";
+      state.result = `<strong>Erreur</strong>${message}\nContactez le service client.\nAppuyez sur Nouvelle opération.`;
+      dom.showToast(message, "error");
     }
+
+    state.busy = false;
+    state.phase = null;
+    render();
+  }
+
+  function confirmStep() {
+    if (state.busy || state.result) return;
 
     if (state.step === "code" && state.code.length === 6) {
       state.step = "amount";
@@ -138,7 +167,7 @@
       state.step = "pin";
       state.status = "Montant saisi";
     } else if (state.step === "pin" && state.pin.length === 4) {
-      submitWithdrawal();
+      phaseAuthorize();
       return;
     } else {
       dom.showToast("Information incomplète.", "error");
@@ -150,10 +179,7 @@
   function bindKeypad() {
     dom.queryAll("[data-dab-key]").forEach((button) => {
       dom.on(button, "click", () => {
-        if (state.busy || state.result) {
-          return;
-        }
-
+        if (state.busy || state.result) return;
         setCurrentBuffer(`${currentBuffer()}${button.dataset.dabKey}`);
         render();
       });
@@ -162,7 +188,6 @@
     dom.queryAll("[data-dab-action]").forEach((button) => {
       dom.on(button, "click", () => {
         const action = button.dataset.dabAction;
-
         if (action === "ok") {
           confirmStep();
         } else if (action === "clear") {
@@ -178,10 +203,7 @@
   function bindAmounts() {
     dom.queryAll("[data-dab-amount]").forEach((button) => {
       dom.on(button, "click", () => {
-        if (state.step !== "amount" || state.busy || state.result) {
-          return;
-        }
-
+        if (state.step !== "amount" || state.busy || state.result) return;
         state.amount = button.dataset.dabAmount || "";
         render();
       });

@@ -8,7 +8,7 @@
       <div>
         <p class="eyebrow">Configuration</p>
         <h1>Personnalisez votre expérience financière.</h1>
-        <p>Chaque étape prépare votre dashboard, vos plafonds de démonstration et les modules Mobile Money, banque et ATM.</p>
+        <p>Chaque étape prépare votre dashboard, vos plafonds de démonstration et les modules Mobile Money et banque.</p>
       </div>
       <div class="onboarding-progress" aria-label="Progression onboarding">
         <span data-step-dot class="is-active"><i class="fa-solid fa-user"></i></span>
@@ -17,7 +17,11 @@
       </div>
     </aside>
 
-    <form class="onboarding-card" data-onboarding-form novalidate>
+<?php $onboardingError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']); ?>
+    <form class="onboarding-card" data-onboarding-form action="" method="post">
+      <?php if ($onboardingError): ?>
+        <div class="form-feedback--error" style="margin-bottom:1rem"><?= e($onboardingError) ?></div>
+      <?php endif; ?>
       <section class="onboarding-step is-active" data-step="0">
         <p class="eyebrow">Étape 1</p>
         <h2>Votre profil</h2>

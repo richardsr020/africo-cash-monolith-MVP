@@ -33,6 +33,20 @@ final class LinkedAccount
         ];
     }
 
+    public function unlink(int $userId, string $type, string $provider, string $reference): bool
+    {
+        $statement = $this->db->prepare(
+            'DELETE FROM linked_accounts WHERE user_id = :user_id AND type = :type AND provider = :provider AND account_reference = :reference'
+        );
+        $statement->execute([
+            ':user_id' => $userId,
+            ':type' => $type,
+            ':provider' => $provider,
+            ':reference' => $reference,
+        ]);
+        return $statement->rowCount() > 0;
+    }
+
     /**
      * @return array<int,array<string,mixed>>
      */

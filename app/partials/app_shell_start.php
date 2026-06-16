@@ -5,44 +5,51 @@ $appRoutes = array_filter(
 );
 ?>
 <header class="app-topbar">
+  <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Toggle sidebar">
+    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+  </button>
   <a class="brand" href="<?= route_path('dashboard') ?>" aria-label="Africo Cash - Tableau de bord">
-    <img src="/assets/img/nav_brand.png" alt="" class="brand-mark" width="40" height="40">
-    <span>Africo Cash</span>
+    <img src="/assets/img/nav_brand.png" alt="Africo Cash Logo" class="brand-mark" width="40" height="40">
+    <span class="brand-text">Africo Cash</span>
   </a>
   <div class="app-topbar-actions">
     <span class="app-user-chip" data-current-user>Session</span>
-    <button class="theme-toggle" type="button" data-theme-toggle>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème">
       <i class="fa-solid fa-moon" aria-hidden="true"></i>
-      <span data-theme-label>Dark</span>
+      <span class="theme-label" data-theme-label>Dark</span>
     </button>
-    <a class="btn btn-soft" href="<?= route_path('profile') ?>">Profil</a>
-    <button class="btn btn-soft" type="button" data-logout>
+    <a class="btn btn-soft" href="<?= route_path('profile') ?>">
+      <i class="fa-solid fa-user" aria-hidden="true"></i>
+      <span class="btn-text">Profil</span>
+    </a>
+    <button class="btn btn-soft" type="button" data-logout aria-label="Se déconnecter">
       <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
-      Sortir
+      <span class="btn-text">Sortir</span>
     </button>
   </div>
 </header>
 
 <div class="app-layout">
   <aside class="app-sidebar" aria-label="Navigation applicative">
-    <nav class="app-nav">
+    <nav class="app-nav" aria-label="Menu principal">
       <?php foreach ($appRoutes as $routeKey => $route): ?>
-        <a href="<?= route_path((string) $routeKey) ?>" class="<?= $pageKey === $routeKey ? 'is-active' : '' ?>">
+        <a href="<?= route_path((string) $routeKey) ?>" 
+           class="<?= ($pageKey ?? '') === $routeKey ? 'is-active' : '' ?>"
+           <?= ($pageKey ?? '') === $routeKey ? 'aria-current="page"' : '' ?>>
           <i class="fa-solid <?= e((string) ($route['icon'] ?? 'fa-circle')) ?>" aria-hidden="true"></i>
-          <span><?= e((string) $route['label']) ?></span>
+          <span class="nav-label"><?= e((string) $route['label']) ?></span>
         </a>
       <?php endforeach; ?>
     </nav>
   </aside>
-  <main id="main-content" class="app-main">
-    <section class="app-page-head">
-      <div>
-        <p class="eyebrow">Africo Cash</p>
-        <h1><?= e((string) $currentPage['label']) ?></h1>
-        <p><?= e((string) $currentPage['description']) ?></p>
-      </div>
-      <button class="btn btn-primary" type="button" data-sync-view>
-        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-        Synchroniser
-      </button>
-    </section>
+  <main id="main-content">
+
+<!-- Ajouter ce script pour la gestion des erreurs si nécessaire -->
+<script>
+  (function() {
+    // Vérifier que toutes les variables PHP sont définies
+    if (typeof $pageKey === 'undefined') {
+      window.$pageKey = '';
+    }
+  })();
+</script>

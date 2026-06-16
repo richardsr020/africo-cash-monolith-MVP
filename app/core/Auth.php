@@ -7,8 +7,10 @@ require_once dirname(__DIR__) . '/models/Account.php';
 require_once dirname(__DIR__) . '/models/AuthSession.php';
 require_once dirname(__DIR__) . '/models/Ledger.php';
 require_once dirname(__DIR__) . '/models/LinkedAccount.php';
+require_once dirname(__DIR__) . '/models/Transaction.php';
 require_once dirname(__DIR__) . '/controllers/AuthController.php';
 require_once dirname(__DIR__) . '/controllers/AppController.php';
+require_once dirname(__DIR__) . '/controllers/TransactionController.php';
 
 function handle_auth_api_request(PDO $db, string $path): bool
 {

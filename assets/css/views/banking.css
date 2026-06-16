@@ -1,3 +1,447 @@
-.panel:first-child {
-  background: color-mix(in srgb, var(--color-brand-soft), var(--color-surface) 65%);
+.banking-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.banking-header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.banking-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.banking-header h1 i {
+  color: var(--color-brand);
+}
+
+.banking-header p {
+  margin: 0;
+  color: var(--color-subtle);
+  font-size: 0.9rem;
+}
+
+/* ── Tabs ── */
+
+.banking-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.banking-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-subtle);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.banking-tab i {
+  font-size: 0.95rem;
+}
+
+.banking-tab:hover {
+  border-color: var(--color-brand);
+  color: var(--color-text);
+}
+
+.banking-tab.is-active {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+/* ── Panels ── */
+
+.banking-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.banking-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.banking-panel-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.banking-panel-header h2 i {
+  color: var(--color-brand);
+  margin-right: 0.4rem;
+}
+
+.banking-info-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #b45309;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.banking-count-badge {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  border: 1px solid var(--color-border);
+  color: var(--color-brand-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── Partner grid ── */
+
+.partner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.partner-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  align-content: start;
+}
+
+.partner-card:hover {
+  border-color: var(--color-brand);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.partner-card.is-selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  box-shadow: 0 0 0 2px var(--color-brand);
+}
+
+.partner-card-img {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.partner-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.partner-card h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.partner-card p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+  line-height: 1.3;
+}
+
+/* ── Forms ── */
+
+.banking-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.banking-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.banking-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.banking-field > span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-subtle);
+}
+
+.banking-field input,
+.banking-field select {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.banking-field input:focus,
+.banking-field select:focus {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(217, 180, 91, 0.2);
+}
+
+.banking-field input[readonly] {
+  background: color-mix(in srgb, var(--color-bg), transparent 40%);
+  cursor: default;
+  opacity: 0.75;
+}
+
+.banking-checkbox {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.banking-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-brand);
+  cursor: pointer;
+}
+
+.banking-checkbox span {
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.banking-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Beneficiaries ── */
+
+.benef-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.benef-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.5rem;
+  color: var(--color-subtle);
+  font-size: 0.9rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.benef-empty i {
+  font-size: 1.1rem;
+  color: var(--color-brand);
+}
+
+.benef-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  transition: box-shadow var(--transition);
+}
+
+.benef-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.benef-item-info {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.benef-item-info strong {
+  font-size: 0.9rem;
+}
+
+.benef-item-info span {
+  font-size: 0.78rem;
+  color: var(--color-subtle);
+  word-break: break-all;
+}
+
+.benef-item-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.benef-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.benef-transfer-btn {
+  font-size: 0.8rem;
+}
+
+.benef-delete-btn {
+  color: var(--color-danger) !important;
+  border-color: transparent !important;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.benef-delete-btn:hover {
+  background: #fef2f2 !important;
+}
+
+/* ── History ── */
+
+.banking-history {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.banking-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.banking-history-info {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.banking-history-info strong {
+  font-size: 0.85rem;
+}
+
+.banking-history-info span {
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+}
+
+.banking-history-amount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-danger);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.banking-history-amount span {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--color-subtle);
+  display: block;
+}
+
+/* ── Confirm modal ── */
+
+.banking-confirm-detail {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.banking-confirm-detail > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0;
+  font-size: 0.88rem;
+}
+
+.banking-confirm-detail > div + div {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+}
+
+.banking-confirm-detail > div span:first-child {
+  color: var(--color-subtle);
+}
+
+.banking-confirm-detail > div strong {
+  text-align: right;
+}
+
+.banking-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  .banking-tabs {
+    flex-direction: column;
+  }
+
+  .banking-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .partner-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .partner-card {
+    padding: 1rem 0.75rem;
+  }
 }

@@ -32,7 +32,7 @@ return [
         'description' => 'Connexion sécurisée Africo Cash par email et mot de passe.',
         'view' => 'app/views/login.php',
         'styles' => ['/assets/css/views/login.css'],
-        'scripts' => ['/assets/js/views/login/login.js'],
+        'scripts' => [],
     ],
     'register' => [
         'path' => '/inscription',
@@ -41,7 +41,7 @@ return [
         'description' => 'Ouverture de compte Africo Cash avec email et mot de passe.',
         'view' => 'app/views/register.php',
         'styles' => ['/assets/css/views/register.css'],
-        'scripts' => ['/assets/js/views/register/register.js'],
+        'scripts' => [],
     ],
     'onboarding' => [
         'path' => '/onboarding',
@@ -105,17 +105,6 @@ return [
         'view' => 'app/views/banking.php',
         'styles' => array_merge($defaultAppStyles, ['/assets/css/views/banking.css']),
         'scripts' => array_merge($defaultAppScripts, ['/assets/js/views/banking/banking.js']),
-        'section' => 'app',
-    ],
-    'atm' => [
-        'path' => '/atm',
-        'label' => 'ATM',
-        'icon' => 'fa-money-bill-transfer',
-        'title' => 'Retrait ATM | Africo Cash',
-        'description' => 'Retrait ATM sans carte avec code temporaire, validation et expiration automatique.',
-        'view' => 'app/views/atm.php',
-        'styles' => array_merge($defaultAppStyles, ['/assets/css/views/atm.css']),
-        'scripts' => array_merge($defaultAppScripts, ['/assets/js/views/atm/atm.js']),
         'section' => 'app',
     ],
     'dab' => [

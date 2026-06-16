@@ -83,6 +83,145 @@ final class AuthController
         return null;
     }
 
+    public function handleLoginForm(): never
+    {
+        $email = $this->normalizeEmail((string) ($_POST['email'] ?? ''));
+        $password = (string) ($_POST['password'] ?? '');
+
+        if ($email === '' || $password === '') {
+            $this->redirectToForm('/connexion', 'Email et mot de passe sont obligatoires.');
+        }
+
+        $user = $this->users->findForLogin($email);
+        if (!is_array($user) || !password_verify($password, (string) $user['password_hash'])) {
+            $this->redirectToForm('/connexion', 'Email ou mot de passe incorrect.');
+        }
+
+        if (!((bool) $user['is_active'])) {
+            $this->redirectToForm('/connexion', 'Ce compte est désactivé.');
+        }
+
+        $this->startSession((int) $user['id']);
+        $normalizedUser = User::normalize($user);
+        $redirect = $normalizedUser['onboarding_completed'] ? '/dashboard' : '/onboarding';
+
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    public function handleRegisterForm(): never
+    {
+        $email = $this->normalizeEmail((string) ($_POST['email'] ?? ''));
+        $password = (string) ($_POST['password'] ?? '');
+        $passwordConfirmation = (string) ($_POST['password_confirmation'] ?? '');
+
+        if ($email === '' || $password === '') {
+            $this->redirectToForm('/inscription', 'Email et mot de passe sont obligatoires.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->redirectToForm('/inscription', 'Adresse email invalide.');
+        }
+
+        if (strlen($password) < 8) {
+            $this->redirectToForm('/inscription', 'Le mot de passe doit contenir au moins 8 caractères.');
+        }
+
+        if ($password !== $passwordConfirmation) {
+            $this->redirectToForm('/inscription', 'Les mots de passe ne correspondent pas.');
+        }
+
+        if ($this->users->emailExists($email)) {
+            $this->redirectToForm('/inscription', 'Cet email est déjà associé à un compte.');
+        }
+
+        $africoNumber = $this->users->generateUniqueAfricoNumber();
+        $fallbackName = $this->nameFromEmail($email);
+
+        try {
+            $this->db->beginTransaction();
+            $userId = $this->users->createCustomer([
+                'afric_number' => $africoNumber,
+                'email' => $email,
+                'password_hash' => password_hash($password, PASSWORD_BCRYPT),
+                'full_name' => $fallbackName,
+                'address' => '',
+                'profession' => '',
+                'notification_phone' => '+243000000000',
+                'country' => 'CD',
+                'account_type' => 'personal',
+            ]);
+            $this->users->createOnboardingShell($userId);
+            $this->accounts->createDefaultWallets($userId);
+            $this->db->commit();
+        } catch (Throwable $throwable) {
+            $this->rollbackIfNeeded();
+            $this->redirectToForm('/inscription', 'Impossible de créer le compte pour le moment.');
+        }
+
+        $this->startSession($userId);
+        header('Location: /onboarding');
+        exit;
+    }
+
+    public function handleOnboardingForm(): never
+    {
+        $user = $this->currentUser();
+        if ($user === null) {
+            $this->redirectToForm('/connexion', 'Vous devez vous connecter.');
+        }
+
+        $fullName = trim((string) ($_POST['full_name'] ?? ''));
+        $phone = $this->normalizePhone((string) ($_POST['phone'] ?? ''));
+        $city = trim((string) ($_POST['city'] ?? ''));
+        $securityPin = preg_replace('/\D+/', '', (string) ($_POST['security_pin'] ?? ''));
+
+        if ($fullName === '' || $phone === '' || $city === '' || $securityPin === '') {
+            $this->redirectToForm('/onboarding', 'Profil, téléphone, ville et PIN sont requis.');
+        }
+
+        if (!$this->isValidPhone($phone)) {
+            $this->redirectToForm('/onboarding', 'Téléphone invalide.');
+        }
+
+        if (strlen($securityPin) !== 4) {
+            $this->redirectToForm('/onboarding', 'Le PIN doit contenir exactement 4 chiffres.');
+        }
+
+        $primaryUse = trim((string) ($_POST['primary_use'] ?? 'personal'));
+        $monthlyVolume = trim((string) ($_POST['monthly_volume'] ?? 'starter'));
+        $defaultCurrency = strtoupper(trim((string) ($_POST['default_currency'] ?? 'CDF')));
+        $mobileOperator = trim((string) ($_POST['mobile_operator'] ?? ''));
+        $accountType = trim((string) ($_POST['account_type'] ?? 'personal'));
+
+        if (!in_array($defaultCurrency, ['CDF', 'USD'], true)) {
+            $defaultCurrency = 'CDF';
+        }
+
+        if (!in_array($accountType, ['personal', 'business', 'agent'], true)) {
+            $accountType = 'personal';
+        }
+
+        $this->users->completeOnboarding((int) $user['id'], [
+            'preferred_name' => trim((string) ($_POST['preferred_name'] ?? $fullName)),
+            'full_name' => $fullName,
+            'phone' => $phone,
+            'city' => $city,
+            'address' => $city,
+            'profession' => trim((string) ($_POST['profession'] ?? '')),
+            'country' => 'CD',
+            'account_type' => $accountType,
+            'primary_use' => $primaryUse,
+            'monthly_volume' => $monthlyVolume,
+            'default_currency' => $defaultCurrency,
+            'mobile_operator' => $mobileOperator,
+            'security_pin_hash' => password_hash($securityPin, PASSWORD_BCRYPT),
+        ]);
+
+        header('Location: /dashboard');
+        exit;
+    }
+
     private function registerIntent(): void
     {
         $payload = request_json_body();
@@ -288,6 +427,13 @@ final class AuthController
         $token = trim(substr($authorization, 7));
 
         return $token !== '' ? $token : null;
+    }
+
+    private function redirectToForm(string $path, string $message): never
+    {
+        $_SESSION['_flash_error'] = $message;
+        header('Location: ' . $path);
+        exit;
     }
 
     private function requireMethod(string $actualMethod, string $expectedMethod): void

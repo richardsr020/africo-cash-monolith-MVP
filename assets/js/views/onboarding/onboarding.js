@@ -48,25 +48,9 @@
       }
     });
 
-    dom.on(form, "submit", async (event) => {
-      event.preventDefault();
+    dom.on(form, "submit", (event) => {
       if (!validateCurrentStep()) {
-        return;
-      }
-
-      dom.setSubmitting(submitButton, true, "Activation...");
-
-      try {
-        const payload = dom.serializeForm(form);
-        const response = await api.post("/auth/onboarding", payload);
-        dom.showToast("Votre dashboard est prêt.", "success");
-        windowObject.setTimeout(() => {
-          windowObject.location.assign(response.data.data.next || "/dashboard");
-        }, 650);
-      } catch (error) {
-        dom.showToast(apiMessage(error, "Configuration impossible."), "error");
-      } finally {
-        dom.setSubmitting(submitButton, false);
+        event.preventDefault();
       }
     });
 
