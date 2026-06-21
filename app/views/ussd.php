@@ -33,7 +33,7 @@
   <aside class="panel ussd-panel">
     <h2>Session USSD</h2>
     <div class="ussd-status">
-      <div><span>Code</span><strong>*144#</strong></div>
+      <div><span>Code</span><strong>*400#</strong></div>
       <div><span>État</span><strong data-ussd-state>Composition</strong></div>
       <div><span>Réseau</span><strong>Africo Cash</strong></div>
     </div>

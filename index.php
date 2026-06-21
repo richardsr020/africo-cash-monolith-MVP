@@ -149,63 +149,248 @@ function handle_api_request(string $path): void
     if ($path === '/api/ussd/session') {
         $state = (string) ($payload['state'] ?? 'dial');
         $input = trim((string) ($payload['input'] ?? ''));
+        $db = Database::getInstance()->getConnection();
+        $user = get_authenticated_user($db);
+
+        $menuScreen = "AFRICO CASH\n1. Solde\n2. Envoyer argent\n3. Retrait DAB\n4. Quitter";
 
         if ($state === 'dial') {
-            if ($input !== '*144#' && $input !== '*123#') {
+            if ($input !== '*400#') {
                 json_response([
                     'success' => true,
                     'state' => 'dial',
-                    'screen' => "Composez *144# ou *123#\npuis appuyez sur Appeler.",
+                    'screen' => "Composez *400#\npuis appuyez sur Appeler.",
                 ]);
             }
 
-            json_response([
-                'success' => true,
-                'state' => 'menu',
-                'screen' => "AFRICO CASH\n1. Solde\n2. Envoyer argent\n3. Retrait DAB\n4. Quitter",
-            ]);
+            unset($_SESSION['ussd']);
+            json_response(['success' => true, 'state' => 'menu', 'screen' => $menuScreen]);
         }
 
         if ($state === 'menu') {
-            $responses = [
-                '1' => ['balance', "Solde Africo Cash\nCDF 2 450 000\nUSD 860\n0. Menu"],
-                '2' => ['send_amount', "Envoyer argent\nEntrez le montant CDF\n0. Annuler"],
-                '3' => ['withdraw_amount', "Retrait DAB\nEntrez le montant CDF\n0. Annuler"],
-                '4' => ['dial', "Session terminée.\nComposez *144# pour recommencer."],
-                '0' => ['menu', "AFRICO CASH\n1. Solde\n2. Envoyer argent\n3. Retrait DAB\n4. Quitter"],
-            ];
-
-            [$nextState, $screen] = $responses[$input] ?? ['menu', "Option inconnue.\n1. Solde\n2. Envoyer argent\n3. Retrait DAB\n4. Quitter"];
-            json_response(['success' => true, 'state' => $nextState, 'screen' => $screen]);
+            if ($input === '0') {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => $menuScreen]);
+            }
+            if ($input === '1') {
+                if ($user === null) {
+                    json_response(['success' => true, 'state' => 'menu', 'screen' => "Connectez-vous d'abord sur Africo Cash.\n{$menuScreen}"]);
+                }
+                $accounts = (new Account($db))->listByUser((int) $user['id']);
+                $lines = ["SOLDE AFRICO CASH"];
+                foreach ($accounts as $acc) {
+                    $lines[] = "{$acc['currency']}: {$acc['formatted_balance']}";
+                }
+                $lines[] = "0. Menu";
+                json_response(['success' => true, 'state' => 'menu', 'screen' => implode("\n", $lines)]);
+            }
+            if ($input === '2') {
+                json_response(['success' => true, 'state' => 'send_recipient', 'screen' => "ENVOYER ARGENT\nEntrez le numéro du destinataire\n(8 chiffres)\n0. Annuler"]);
+            }
+            if ($input === '3') {
+                json_response(['success' => true, 'state' => 'withdraw_amount', 'screen' => "RETRAIT DAB\nEntrez le montant en CDF\n0. Annuler"]);
+            }
+            if ($input === '4') {
+                json_response(['success' => true, 'state' => 'dial', 'screen' => "Session terminée.\nComposez *400# pour recommencer."]);
+            }
+            json_response(['success' => true, 'state' => 'menu', 'screen' => "Option inconnue.\n{$menuScreen}"]);
         }
 
-        if ($state === 'balance') {
+        if (in_array($state, ['send_recipient', 'send_amount', 'send_confirm', 'withdraw_amount', 'withdraw_confirm'], true)) {
+            if ($user === null) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Connectez-vous d'abord sur\nAfrico Cash.\n{$menuScreen}"]);
+            }
+        }
+
+        if ($state === 'send_recipient') {
+            if ($input === '0') {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Opération annulée.\n{$menuScreen}"]);
+            }
+            if (!preg_match('/^\d{8}$/', $input)) {
+                json_response(['success' => true, 'state' => 'send_recipient', 'screen' => "Numéro invalide (8 chiffres).\nEntrez le numéro du destinataire\n0. Annuler"]);
+            }
+            if ($input === $user['africo_number']) {
+                json_response(['success' => true, 'state' => 'send_recipient', 'screen' => "Vous ne pouvez pas vous envoyer\nde l'argent à vous-même.\nEntrez le numéro du destinataire\n0. Annuler"]);
+            }
+
+            $stmt = $db->prepare('SELECT id, full_name FROM users WHERE afric_number = :number AND is_active = 1 LIMIT 1');
+            $stmt->execute([':number' => $input]);
+            $recipient = $stmt->fetch();
+            if (!$recipient) {
+                json_response(['success' => true, 'state' => 'send_recipient', 'screen' => "Destinataire introuvable.\nEntrez le numéro du destinataire\n0. Annuler"]);
+            }
+
+            $_SESSION['ussd'] = ['recipient' => $input, 'recipient_name' => $recipient['full_name']];
+            json_response(['success' => true, 'state' => 'send_amount', 'screen' => "ENVOYER ARGENT\nÀ: {$recipient['full_name']}\nMontant en CDF\n0. Annuler"]);
+        }
+
+        if ($state === 'send_amount') {
+            if ($input === '0' || !isset($_SESSION['ussd']['recipient'])) {
+                unset($_SESSION['ussd']);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Opération annulée.\n{$menuScreen}"]);
+            }
+
+            $amount = (int) preg_replace('/\D+/', '', $input);
+            if ($amount < 100) {
+                json_response(['success' => true, 'state' => 'send_amount', 'screen' => "Montant minimum: 100 CDF.\nEntrez le montant en CDF\n0. Annuler"]);
+            }
+            if ($amount > 1000000) {
+                json_response(['success' => true, 'state' => 'send_amount', 'screen' => "Montant maximum: 1 000 000 CDF.\nEntrez le montant en CDF\n0. Annuler"]);
+            }
+
+            $_SESSION['ussd']['amount'] = $amount;
             json_response([
                 'success' => true,
-                'state' => 'menu',
-                'screen' => "AFRICO CASH\n1. Solde\n2. Envoyer argent\n3. Retrait DAB\n4. Quitter",
+                'state' => 'send_confirm',
+                'screen' => "ENVOYER ARGENT\nÀ: {$_SESSION['ussd']['recipient_name']}\nMontant: " . number_format($amount, 0, ',', ' ') . " CDF\n1. Confirmer\n0. Annuler",
             ]);
         }
 
-        if ($state === 'send_amount' || $state === 'withdraw_amount') {
-            $amount = (int) preg_replace('/\D+/', '', $input);
-
-            if ($amount <= 0) {
-                json_response([
-                    'success' => true,
-                    'state' => 'menu',
-                    'screen' => "Opération annulée.\n1. Solde\n2. Envoyer argent\n3. Retrait DAB\n4. Quitter",
-                ]);
+        if ($state === 'send_confirm') {
+            if ($input === '0') {
+                unset($_SESSION['ussd']);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Opération annulée.\n{$menuScreen}"]);
+            }
+            if ($input !== '1') {
+                json_response(['success' => true, 'state' => 'send_confirm', 'screen' => "Option inconnue.\n1. Confirmer\n0. Annuler"]);
             }
 
-            $screen = $state === 'send_amount'
-                ? "Transfert simulé\nMontant: {$amount} CDF\nStatut: prêt à confirmer\n0. Menu"
-                : "Code DAB généré\nMontant: {$amount} CDF\nCode: " . random_int(100000, 999999) . "\n0. Menu";
+            $context = $_SESSION['ussd'] ?? [];
+            $recipient = (string) ($context['recipient'] ?? '');
+            $amount = (int) ($context['amount'] ?? 0);
+            unset($_SESSION['ussd']);
 
-            json_response(['success' => true, 'state' => 'menu', 'screen' => $screen]);
+            if ($recipient === '' || $amount <= 0) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Session expirée.\n{$menuScreen}"]);
+            }
+
+            $stmt = $db->prepare('SELECT id, full_name FROM users WHERE afric_number = :number AND is_active = 1 LIMIT 1');
+            $stmt->execute([':number' => $recipient]);
+            $recipientUser = $stmt->fetch();
+            if (!$recipientUser) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Destinataire introuvable.\n{$menuScreen}"]);
+            }
+
+            $recipientAccountStmt = $db->prepare('SELECT 1 FROM accounts WHERE user_id = :uid AND currency = :cur LIMIT 1');
+            $recipientAccountStmt->execute([':uid' => $recipientUser['id'], ':currency' => 'CDF']);
+            if (!$recipientAccountStmt->fetch()) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Le destinataire n'a pas de compte CDF.\n{$menuScreen}"]);
+            }
+
+            $accounts = new Account($db);
+            try {
+                $accounts->ensureBalance((int) $user['id'], 'CDF', $amount);
+            } catch (RuntimeException $e) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Solde insuffisant.\n{$menuScreen}"]);
+            }
+
+            $db->beginTransaction();
+            try {
+                $reference = 'USSD-' . date('ymdHis') . '-' . random_int(100, 999);
+
+                $txnStmt = $db->prepare(
+                    'INSERT INTO transactions (idempotency_key, transaction_reference, user_id, type, amount, currency, fees, total_amount, status, recipient_type, recipient_name, recipient_account, metadata, created_at, completed_at) '
+                    . 'VALUES (:ik, :ref, :uid, :type, :amount, :cur, 0, :amount, :status, :rtype, :rname, :raccount, :meta, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+                );
+                $txnStmt->execute([
+                    ':ik' => bin2hex(random_bytes(16)),
+                    ':ref' => $reference,
+                    ':uid' => (int) $user['id'],
+                    ':type' => 'send',
+                    ':amount' => $amount,
+                    ':cur' => 'CDF',
+                    ':status' => 'completed',
+                    ':rtype' => 'user',
+                    ':rname' => $recipientUser['full_name'],
+                    ':raccount' => $recipient,
+                    ':meta' => json_encode(['source' => 'ussd']),
+                ]);
+                $txnStmt->execute([
+                    ':ik' => bin2hex(random_bytes(16)),
+                    ':ref' => $reference . '-R',
+                    ':uid' => (int) $recipientUser['id'],
+                    ':type' => 'deposit',
+                    ':amount' => $amount,
+                    ':cur' => 'CDF',
+                    ':status' => 'completed',
+                    ':rtype' => 'user',
+                    ':rname' => $user['full_name'],
+                    ':raccount' => $user['africo_number'],
+                    ':meta' => json_encode(['source' => 'ussd', 'parent_reference' => $reference]),
+                ]);
+
+                $accounts->move((int) $user['id'], 'CDF', -$amount);
+                $accounts->move((int) $recipientUser['id'], 'CDF', $amount);
+                $db->commit();
+
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Transfert réussi!\nRéf: {$reference}\n" . number_format($amount, 0, ',', ' ') . " CDF\nvers {$recipientUser['full_name']}\n{$menuScreen}"]);
+            } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Erreur lors du transfert.\n{$menuScreen}"]);
+            }
         }
 
-        json_response(['success' => true, 'state' => 'dial', 'screen' => 'Session réinitialisée. Composez *144#.']);
+        if ($state === 'withdraw_amount') {
+            if ($input === '0') {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Opération annulée.\n{$menuScreen}"]);
+            }
+
+            $amount = (int) preg_replace('/\D+/', '', $input);
+            if ($amount < 1000) {
+                json_response(['success' => true, 'state' => 'withdraw_amount', 'screen' => "Montant minimum: 1 000 CDF.\nEntrez le montant en CDF\n0. Annuler"]);
+            }
+            if ($amount > 1000000) {
+                json_response(['success' => true, 'state' => 'withdraw_amount', 'screen' => "Montant maximum: 1 000 000 CDF.\nEntrez le montant en CDF\n0. Annuler"]);
+            }
+
+            $_SESSION['ussd'] = ['withdraw_amount' => $amount];
+            json_response([
+                'success' => true,
+                'state' => 'withdraw_confirm',
+                'screen' => "RETRAIT DAB\nMontant: " . number_format($amount, 0, ',', ' ') . " CDF\n1. Confirmer\n0. Annuler",
+            ]);
+        }
+
+        if ($state === 'withdraw_confirm') {
+            if ($input === '0') {
+                unset($_SESSION['ussd']);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Opération annulée.\n{$menuScreen}"]);
+            }
+            if ($input !== '1') {
+                json_response(['success' => true, 'state' => 'withdraw_confirm', 'screen' => "Option inconnue.\n1. Confirmer\n0. Annuler"]);
+            }
+
+            $amount = (int) ($_SESSION['ussd']['withdraw_amount'] ?? 0);
+            unset($_SESSION['ussd']);
+
+            if ($amount <= 0) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Session expirée.\n{$menuScreen}"]);
+            }
+
+            $atmCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            try {
+                (new Ledger($db))->record((int) $user['id'], [
+                    'type' => 'withdraw',
+                    'amount' => $amount,
+                    'currency' => 'CDF',
+                    'fees' => 0,
+                    'total_amount' => $amount,
+                    'status' => 'pending',
+                    'recipient_type' => 'atm',
+                    'recipient_name' => 'Retrait DAB USSD',
+                    'atm_code' => $atmCode,
+                    'metadata' => ['source' => 'ussd', 'expires_at' => date('Y-m-d H:i:s', time() + 600)],
+                ]);
+
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Retrait DAB enregistré!\nCode: {$atmCode}\n" . number_format($amount, 0, ',', ' ') . " CDF\nValable 10 minutes\n{$menuScreen}"]);
+            } catch (Exception $e) {
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Erreur lors du retrait.\n{$menuScreen}"]);
+            }
+        }
+
+        json_response(['success' => true, 'state' => 'dial', 'screen' => 'Session réinitialisée. Composez *400#.']);
     }
 
     json_response(['success' => false, 'message' => 'API introuvable.'], 404);
