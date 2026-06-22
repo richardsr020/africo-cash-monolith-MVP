@@ -344,6 +344,46 @@
     }
   }
 
+  /* ── Forgot PIN ── */
+
+  function openForgotPinModal() {
+    const modal = el("[data-forgot-pin-modal]");
+    if (modal) modal.style.display = "";
+  }
+
+  function closeForgotPinModal() {
+    const modal = el("[data-forgot-pin-modal]");
+    if (modal) modal.style.display = "none";
+    const form = el("[data-forgot-pin-form]");
+    if (form) form.reset();
+  }
+
+  dom.on(el("[data-forgot-pin-btn]"), "click", openForgotPinModal);
+
+  dom.on(el("[data-forgot-pin-close]"), "click", closeForgotPinModal);
+  dom.on(el("[data-forgot-pin-cancel]"), "click", closeForgotPinModal);
+
+  el("[data-forgot-pin-modal]")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeForgotPinModal();
+  });
+
+  dom.on(el("[data-forgot-pin-form]"), "submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const btn = el("button[type='submit']", form);
+
+    dom.setSubmitting(btn, true, "Réinitialisation...");
+    try {
+      const response = await api.post("/app/profile/forgot-pin", dom.serializeForm(form));
+      dom.showToast(response.data.data.message || "PIN réinitialisé.", "success");
+      closeForgotPinModal();
+    } catch (err) {
+      dom.showToast(err.response?.data?.error?.message || "Erreur.", "error");
+    } finally {
+      dom.setSubmitting(btn, false);
+    }
+  });
+
   /* ── Init ── */
 
   documentObject.addEventListener("DOMContentLoaded", () => {

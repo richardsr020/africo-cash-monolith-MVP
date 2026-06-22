@@ -131,8 +131,18 @@ function handle_api_request(string $path): void
             json_response(['success' => false, 'error' => ['code' => 'onboarding_required', 'message' => 'Veuillez terminer l’onboarding.']], 409);
         }
 
-        if ((new AppController($db, $user))->handle($path)) {
-            return;
+        $controllers = [
+            new ProfileController($db, $user),
+            new BillController($db, $user),
+            new BankingController($db, $user),
+            new WithdrawController($db, $user),
+            new AppController($db, $user),
+        ];
+
+        foreach ($controllers as $controller) {
+            if ($controller->handle($path)) {
+                return;
+            }
         }
     }
 

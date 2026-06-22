@@ -118,6 +118,9 @@
           <button class="btn btn-primary" type="submit">
             <i class="fa-solid fa-circle-check"></i> Changer le PIN
           </button>
+          <button class="btn btn-soft" type="button" data-forgot-pin-btn>
+            <i class="fa-solid fa-key"></i> PIN oublié ?
+          </button>
         </div>
       </form>
     </div>
@@ -213,4 +216,33 @@
     </div>
   </section>
 </div>
+<!-- ═══ Forgot PIN Modal ═══ -->
+<div class="modal-overlay" data-forgot-pin-modal style="display:none">
+  <div class="modal-container profile-forgot-pin-modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-key"></i> Réinitialisation du PIN</h3>
+      <button class="modal-close" data-forgot-pin-close type="button">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-subtle);margin:0 0 1rem">Veuillez confirmer votre mot de passe pour définir un nouveau code PIN.</p>
+      <form class="profile-form" data-forgot-pin-form>
+        <label class="profile-field">
+          <span>Mot de passe</span>
+          <input type="password" name="password" required placeholder="Votre mot de passe">
+        </label>
+        <label class="profile-field">
+          <span>Nouveau PIN (4 chiffres)</span>
+          <input type="password" name="new_pin" required maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="4 chiffres">
+        </label>
+        <div class="profile-form-actions">
+          <button class="btn btn-primary" type="submit">
+            <i class="fa-solid fa-circle-check"></i> Réinitialiser le PIN
+          </button>
+          <button class="btn btn-soft" type="button" data-forgot-pin-cancel>Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <?php require __DIR__ . '/../partials/app_shell_end.php'; ?>
