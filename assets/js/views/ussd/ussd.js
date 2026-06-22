@@ -7,16 +7,18 @@
   const state = {
     session: "dial",
     input: "",
-    screen: "Composez *144# ou *123#\npuis appuyez sur Appeler.",
+    screen: "Composez *400#\npuis appuyez sur Appeler.",
     busy: false,
   };
 
   const labels = {
     dial: "Composition",
     menu: "Menu",
-    balance: "Solde",
+    send_recipient: "Destinataire",
     send_amount: "Envoi",
+    send_confirm: "Confirmation",
     withdraw_amount: "Retrait",
+    withdraw_confirm: "Confirmation",
   };
 
   function render() {
@@ -67,7 +69,7 @@
   function endSession() {
     state.session = "dial";
     state.input = "";
-    state.screen = "Session terminée.\nComposez *144# pour recommencer.";
+    state.screen = "Session terminée.\nComposez *400# pour recommencer.";
     render();
   }
 
