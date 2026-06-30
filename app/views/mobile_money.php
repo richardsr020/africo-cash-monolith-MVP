@@ -54,7 +54,81 @@
       </div>
     </div>
   </section>
+
+  <!-- Send to Mobile Money -->
+  <section class="mm-panel" data-mm-send-panel style="display:none">
+    <div class="mm-panel-header">
+      <h2><i class="fa-solid fa-paper-plane"></i> Envoyer vers Mobile Money</h2>
+    </div>
+    <form class="mm-send-form" data-mm-send-form>
+      <div class="mm-send-rows">
+        <div class="mm-field">
+          <span>Compte destinataire</span>
+          <select data-mm-send-account required>
+            <option value="">Sélectionnez un compte...</option>
+          </select>
+        </div>
+        <div class="mm-send-inline">
+          <div class="mm-field mm-field--grow">
+            <span>Montant</span>
+            <input type="number" data-mm-send-amount min="1" required placeholder="0" inputmode="numeric">
+          </div>
+          <div class="mm-field mm-field--narrow">
+            <span>Devise</span>
+            <select data-mm-send-currency>
+              <option value="CDF">CDF</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+        <div class="mm-field">
+          <span>PIN de sécurité</span>
+          <input type="password" data-mm-send-pin inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="Votre PIN à 4 chiffres">
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit" data-mm-send-submit>
+        <i class="fa-solid fa-paper-plane"></i> Envoyer
+      </button>
+    </form>
+  </section>
 </div>
+
+<!-- Send confirmation modal -->
+<dialog class="modal" data-mm-send-confirm-modal aria-labelledby="mm-send-confirm-title">
+  <div class="modal-card">
+    <button class="modal-close" type="button" data-mm-send-confirm-close aria-label="Fermer">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="mm-send-confirm-content">
+      <i class="fa-solid fa-paper-plane mm-send-confirm-icon"></i>
+      <h2 id="mm-send-confirm-title">Confirmer l'envoi</h2>
+      <div class="mm-send-confirm-details">
+        <div class="mm-send-confirm-row">
+          <span>Destinataire</span>
+          <strong data-mm-send-confirm-account></strong>
+        </div>
+        <div class="mm-send-confirm-row">
+          <span>Montant</span>
+          <strong data-mm-send-confirm-amount></strong>
+        </div>
+        <div class="mm-send-confirm-row">
+          <span>Frais</span>
+          <strong>0</strong>
+        </div>
+        <div class="mm-send-confirm-row mm-send-confirm-row--total">
+          <span>Total débité</span>
+          <strong data-mm-send-confirm-total></strong>
+        </div>
+      </div>
+      <div class="mm-modal-actions" style="justify-content:center">
+        <button class="btn btn-soft" type="button" data-mm-send-confirm-close>Annuler</button>
+        <button class="btn btn-primary" type="button" data-mm-send-confirm-execute>
+          <i class="fa-solid fa-check"></i> Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+</dialog>
 
 <!-- Connect modal -->
 <dialog class="modal" data-mm-modal aria-labelledby="mm-modal-title">

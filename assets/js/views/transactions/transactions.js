@@ -283,6 +283,102 @@ if (document.getElementById('tab-deposit')) {
 }
 
 // ============================================
+// 9. SYSTÈME D'ÉVALUATION (RATING)
+// ============================================
+(function() {
+    const rateModal = document.querySelector('[data-rate-modal]');
+    if (!rateModal) return;
+
+    const starBtns = rateModal.querySelectorAll('[data-star]');
+    const rateSubmit = rateModal.querySelector('[data-rate-submit]');
+    const rateComment = rateModal.querySelector('[data-rate-comment]');
+    const closeBtns = rateModal.querySelectorAll('[data-rate-close]');
+
+    let selectedRating = 0;
+    let currentTxnRef = '';
+    let currentRecipient = '';
+
+    // Star hover/select
+    starBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedRating = parseInt(btn.dataset.star, 10);
+            starBtns.forEach((b, i) => {
+                b.style.color = i < selectedRating ? 'gold' : 'var(--color-border)';
+            });
+            rateSubmit.disabled = false;
+        });
+        btn.addEventListener('mouseenter', () => {
+            const val = parseInt(btn.dataset.star, 10);
+            starBtns.forEach((b, i) => {
+                b.style.color = i < val ? '#ffd700' : 'var(--color-border)';
+            });
+        });
+        btn.addEventListener('mouseleave', () => {
+            starBtns.forEach((b, i) => {
+                b.style.color = i < selectedRating ? 'gold' : 'var(--color-border)';
+            });
+        });
+    });
+
+    // Open modal
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-rate-txn]');
+        if (!btn) return;
+        currentTxnRef = btn.dataset.rateTxn;
+        currentRecipient = btn.dataset.rateRecipient;
+        selectedRating = 0;
+        starBtns.forEach(b => b.style.color = 'var(--color-border)');
+        rateSubmit.disabled = true;
+        if (rateComment) rateComment.value = '';
+        rateModal.showModal();
+    });
+
+    // Close
+    closeBtns.forEach(btn => {
+        btn.addEventListener('click', () => rateModal.close());
+    });
+
+    // Submit
+    rateSubmit?.addEventListener('click', async () => {
+        if (selectedRating < 1) return;
+
+        rateSubmit.disabled = true;
+        rateSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Envoi...';
+
+        try {
+            const response = await fetch('/api/app/ratings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reference: currentTxnRef,
+                    rating: selectedRating,
+                    comment: rateComment?.value || '',
+                }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // Visual feedback
+                const rateBtn = document.querySelector(`[data-rate-txn="${currentTxnRef}"]`);
+                if (rateBtn) {
+                    rateBtn.innerHTML = '<i class="fa-solid fa-check" style="color:#10b981"></i>';
+                    rateBtn.disabled = true;
+                }
+                rateModal.close();
+                showCopyNotification('Évaluation enregistrée. Merci !');
+            } else {
+                alert(result.error?.message || 'Erreur lors de l\'évaluation.');
+            }
+        } catch (err) {
+            alert('Erreur de connexion.');
+        } finally {
+            rateSubmit.disabled = false;
+            rateSubmit.innerHTML = '<i class="fa-solid fa-check"></i> Noter';
+        }
+    });
+})();
+
+// ============================================
 // 8. GESTION DU RETRAIT MULTI-ÉTAPES
 // ============================================
 (function() {

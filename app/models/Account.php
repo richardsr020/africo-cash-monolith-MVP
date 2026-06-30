@@ -45,25 +45,44 @@ final class Account
 
     public function ensureBalance(int $userId, string $currency, int $amount): void
     {
-        $statement = $this->db->prepare('SELECT balance FROM accounts WHERE user_id = :user_id AND currency = :currency LIMIT 1');
-        $statement->execute([':user_id' => $userId, ':currency' => $currency]);
-        $balance = $statement->fetchColumn();
+        $statement = $this->db->prepare(
+            'UPDATE accounts SET version = version + 1, updated_at = CURRENT_TIMESTAMP '
+            . 'WHERE user_id = :user_id AND currency = :currency AND balance >= :amount'
+        );
+        $statement->execute([
+            ':user_id' => $userId,
+            ':currency' => $currency,
+            ':amount' => $amount,
+        ]);
 
-        if ($balance === false || (int) $balance < $amount) {
+        if ($statement->rowCount() === 0) {
+            $exists = $this->db->prepare('SELECT 1 FROM accounts WHERE user_id = :user_id AND currency = :currency');
+            $exists->execute([':user_id' => $userId, ':currency' => $currency]);
+            if (!$exists->fetchColumn()) {
+                throw new RuntimeException('Compte introuvable.');
+            }
             throw new RuntimeException('Solde insuffisant.');
         }
     }
 
     public function move(int $userId, string $currency, int $amountDelta): void
     {
-        $statement = $this->db->prepare(
-            'UPDATE accounts SET balance = balance + :delta, version = version + 1, updated_at = CURRENT_TIMESTAMP '
-            . 'WHERE user_id = :user_id AND currency = :currency'
-        );
+        $sql = 'UPDATE accounts SET balance = balance + :delta, version = version + 1, updated_at = CURRENT_TIMESTAMP '
+            . 'WHERE user_id = :user_id AND currency = :currency';
+
+        if ($amountDelta < 0) {
+            $sql .= ' AND balance + :delta >= 0';
+        }
+
+        $statement = $this->db->prepare($sql);
         $statement->execute([
             ':delta' => $amountDelta,
             ':user_id' => $userId,
             ':currency' => $currency,
         ]);
+
+        if ($amountDelta < 0 && $statement->rowCount() === 0) {
+            throw new RuntimeException('Solde insuffisant.');
+        }
     }
 }

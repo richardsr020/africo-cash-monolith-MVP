@@ -259,6 +259,15 @@
       </div>
     </article>
 
+    <article class="panel trust-panel">
+      <div class="panel__head">
+        <h2><i class="fa-solid fa-shield-halved"></i> Cote sociale</h2>
+      </div>
+      <div class="trust-widget" data-trust-widget>
+        <div class="trust-loading">Chargement...</div>
+      </div>
+    </article>
+
     <article class="panel goals-panel">
       <div class="panel__head"><h2>Objectifs d'épargne</h2></div>
       <div class="goals-list" data-goals-list>
@@ -299,4 +308,5 @@
 
 </section>
 
+<link rel="stylesheet" href="/assets/css/views/trust_score.css?v=1">
 <?php require __DIR__ . '/../partials/app_shell_end.php'; ?>

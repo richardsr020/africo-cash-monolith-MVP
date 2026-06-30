@@ -23,6 +23,7 @@
     <button class="profile-tab" data-tab="preferences"><i class="fa-solid fa-bell"></i> Notifications</button>
     <button class="profile-tab" data-tab="sessions"><i class="fa-solid fa-laptop"></i> Sessions</button>
     <button class="profile-tab" data-tab="linked"><i class="fa-solid fa-link"></i> Liens</button>
+    <button class="profile-tab" data-tab="trust"><i class="fa-solid fa-shield-halved"></i> Cote sociale</button>
     <button class="profile-tab" data-tab="activity"><i class="fa-solid fa-clock-rotate-left"></i> Activité</button>
   </div>
 
@@ -203,6 +204,16 @@
     </div>
   </section>
 
+  <!-- ═══ Tab: Trust ═══ -->
+  <section class="profile-panel" data-tab-content="trust" style="display:none">
+    <div class="profile-panel-header">
+      <h2><i class="fa-solid fa-shield-halved"></i> Cote sociale</h2>
+    </div>
+    <div class="profile-trust" data-profile-trust>
+      <div class="profile-empty"><i class="fa-solid fa-spinner fa-spin"></i><span>Chargement...</span></div>
+    </div>
+  </section>
+
   <!-- ═══ Tab: Activity ═══ -->
   <section class="profile-panel" data-tab-content="activity" style="display:none">
     <div class="profile-panel-header">
@@ -245,4 +256,5 @@
   </div>
 </div>
 
+<link rel="stylesheet" href="/assets/css/views/trust_score.css?v=1">
 <?php require __DIR__ . '/../partials/app_shell_end.php'; ?>

@@ -107,9 +107,9 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
                 <div class="form-group">
                     <label>Solde disponible</label>
                     <div class="balance-display">
-                        <span class="balance-amount"><?= number_format($balanceCdf, 0, ',', ' ') ?> FC</span>
+                        <span class="balance-amount"><?= number_format($balanceCdf / 100, 2, ',', ' ') ?> FC</span>
                         <?php if ($balanceUsd > 0): ?>
-                        <span class="balance-amount" style="margin-left:0.5rem;color:var(--text-muted)"><?= number_format($balanceUsd, 0, ',', ' ') ?> USD</span>
+                        <span class="balance-amount" style="margin-left:0.5rem;color:var(--text-muted)"><?= number_format($balanceUsd / 100, 2, ',', ' ') ?> USD</span>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -135,6 +135,11 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
                 <div class="form-group">
                     <label for="description">Description (optionnel)</label>
                     <textarea id="description" name="description" rows="2" placeholder="Motif du transfert"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="sendPin">PIN de sécurité</label>
+                    <input type="password" id="sendPin" name="pin" required placeholder="Votre PIN à 4 chiffres" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" autocomplete="off">
                 </div>
 
                 <input type="hidden" name="action" value="send">
@@ -240,9 +245,9 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
                     <div class="form-group">
                         <label>Solde disponible</label>
                         <div class="balance-display" data-balance-container="atm">
-                            <span class="balance-amount" data-atm-balance><?= number_format($balanceCdf, 0, ',', ' ') ?> FC</span>
+                            <span class="balance-amount" data-atm-balance><?= number_format($balanceCdf / 100, 2, ',', ' ') ?> FC</span>
                             <?php if ($balanceUsd > 0): ?>
-                            <span class="balance-amount" style="margin-left:0.5rem;color:var(--text-muted)" data-atm-balance-usd><?= number_format($balanceUsd, 0, ',', ' ') ?> USD</span>
+                            <span class="balance-amount" style="margin-left:0.5rem;color:var(--text-muted)" data-atm-balance-usd><?= number_format($balanceUsd / 100, 2, ',', ' ') ?> USD</span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -276,9 +281,9 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
                     <div class="form-group">
                         <label>Solde disponible</label>
                         <div class="balance-display" data-balance-container="agent">
-                            <span class="balance-amount" data-agent-balance><?= number_format($balanceCdf, 0, ',', ' ') ?> FC</span>
+                            <span class="balance-amount" data-agent-balance><?= number_format($balanceCdf / 100, 2, ',', ' ') ?> FC</span>
                             <?php if ($balanceUsd > 0): ?>
-                            <span class="balance-amount" style="margin-left:0.5rem;color:var(--text-muted)" data-agent-balance-usd><?= number_format($balanceUsd, 0, ',', ' ') ?> USD</span>
+                            <span class="balance-amount" style="margin-left:0.5rem;color:var(--text-muted)" data-agent-balance-usd><?= number_format($balanceUsd / 100, 2, ',', ' ') ?> USD</span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -478,13 +483,19 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
                                 <span class="transaction-ref">
                                     Réf: <?= htmlspecialchars($transaction['transaction_reference']) ?>
                                 </span>
+                                <?php if ($transaction['type'] === 'send' || $transaction['type'] === 'send_mobile_money'): ?>
+                                <button class="btn btn-soft btn-xs rate-btn" data-rate-txn="<?= htmlspecialchars($transaction['transaction_reference']) ?>" data-rate-recipient="<?= htmlspecialchars($currentUser['africo_number']) ?>" title="Évaluer">
+                                    <i class="fa-solid fa-star"></i>
+                                </button>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="transaction-amount <?= $transaction['type'] === 'send' ? 'negative' : 'positive' ?>">
+                            <?php $txnAmt = $transaction['amount'] / 100; ?>
                             <?php if ($transaction['type'] === 'send'): ?>
-                                -<?= number_format($transaction['amount'], 0, ',', ' ') ?> FC
+                                -<?= number_format($txnAmt, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?>
                             <?php else: ?>
-                                +<?= number_format($transaction['amount'], 0, ',', ' ') ?> FC
+                                +<?= number_format($txnAmt, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?>
                             <?php endif; ?>
                         </div>
                         <div class="transaction-status status-<?= $transaction['status'] ?>">
@@ -565,19 +576,19 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
 
                     <div class="receipt-row">
                         <span class="receipt-label">Montant</span>
-                        <span class="receipt-value amount"><?= number_format($transaction['amount'], 0, ',', ' ') ?> FC</span>
+                        <span class="receipt-value amount"><?= number_format($transaction['amount'] / 100, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?></span>
                     </div>
 
                     <?php if ($transaction['fees'] > 0): ?>
                         <div class="receipt-row">
                             <span class="receipt-label">Frais</span>
-                            <span class="receipt-value"><?= number_format($transaction['fees'], 0, ',', ' ') ?> FC</span>
+                            <span class="receipt-value"><?= number_format($transaction['fees'] / 100, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?></span>
                         </div>
                     <?php endif; ?>
 
                     <div class="receipt-row total">
                         <span class="receipt-label">Total débité</span>
-                        <span class="receipt-value"><?= number_format($transaction['total_amount'], 0, ',', ' ') ?> FC</span>
+                        <span class="receipt-value"><?= number_format($transaction['total_amount'] / 100, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?></span>
                     </div>
 
                     <?php if (!empty($transaction['metadata']['description'])): ?>
@@ -607,8 +618,37 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['success']);
     </div>
 </div>
 
+<!-- Rate modal -->
+<dialog class="modal" data-rate-modal aria-labelledby="rate-modal-title">
+  <div class="modal-card">
+    <button class="modal-close" type="button" data-rate-close aria-label="Fermer">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="rate-modal-content">
+      <i class="fa-solid fa-star rate-modal-icon"></i>
+      <h2 id="rate-modal-title">Évaluer le destinataire</h2>
+      <p>Notez votre expérience avec cette transaction</p>
+      <div class="star-rating" data-star-rating>
+        <button class="star-btn" data-star="1" type="button"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="2" type="button"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="3" type="button"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="4" type="button"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="5" type="button"><i class="fa-solid fa-star"></i></button>
+      </div>
+      <textarea class="rate-comment" data-rate-comment rows="2" placeholder="Commentaire (optionnel)"></textarea>
+      <div class="mm-modal-actions" style="justify-content:center">
+        <button class="btn btn-soft" type="button" data-rate-close>Annuler</button>
+        <button class="btn btn-primary" type="button" data-rate-submit disabled>
+          <i class="fa-solid fa-check"></i> Noter
+        </button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
 <link rel="stylesheet" href="/assets/css/transactions.css">
-<script>window.balances = {cdf:<?= $balanceCdf ?>,usd:<?= $balanceUsd ?>,cdf_formatted:'<?= number_format($balanceCdf, 0, ',', ' ') ?>',usd_formatted:'<?= number_format($balanceUsd, 0, ',', ' ') ?>'};</script>
+<link rel="stylesheet" href="/assets/css/views/trust_score.css?v=1">
+<script>window.balances = {cdf:<?= $balanceCdf / 100 ?>,usd:<?= $balanceUsd / 100 ?>,cdf_formatted:'<?= number_format($balanceCdf / 100, 2, ',', ' ') ?>',usd_formatted:'<?= number_format($balanceUsd / 100, 2, ',', ' ') ?>'};</script>
 <script src="/assets/js/transactions.js" defer></script>
 
 <?php require __DIR__ . '/../partials/app_shell_end.php'; ?>

@@ -61,10 +61,11 @@
                         </div>
                     </div>
                     <div class="transaction-amount <?= $transaction['type'] === 'send' ? 'negative' : 'positive' ?>">
+                        <?php $txnAmt = $transaction['amount'] / 100; ?>
                         <?php if ($transaction['type'] === 'send'): ?>
-                            -<?= number_format($transaction['amount'], 0, ',', ' ') ?> FC
+                            -<?= number_format($txnAmt, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?>
                         <?php else: ?>
-                            +<?= number_format($transaction['amount'], 0, ',', ' ') ?> FC
+                            +<?= number_format($txnAmt, 2, ',', ' ') ?> <?= htmlspecialchars($transaction['currency']) ?>
                         <?php endif; ?>
                     </div>
                     <div class="transaction-status status-<?= $transaction['status'] ?>">

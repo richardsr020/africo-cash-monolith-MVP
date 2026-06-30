@@ -3,17 +3,19 @@
 require_once __DIR__ . '/../models/Transaction.php';
 
 class TransactionController {
+    private $db;
     private $transactionModel;
     
     public function __construct($db) {
+        $this->db = $db;
         $this->transactionModel = new Transaction($db);
     }
     
     public function index() {
+        $userId = (int) ($_SESSION['auth_user_id'] ?? 0);
         $activeTab = $_GET['tab'] ?? 'send';
-        $balance = $this->transactionModel->checkBalance($_SESSION['user_id']);
+        $balance = $this->transactionModel->checkBalance($userId);
         
-        // Données pour l'historique
         $page = (int)($_GET['page'] ?? 1);
         $limit = 20;
         $offset = ($page - 1) * $limit;
@@ -24,14 +26,14 @@ class TransactionController {
         ];
         
         $transactions = $this->transactionModel->getUserTransactions(
-            $_SESSION['user_id'],
+            $userId,
             $limit,
             $offset,
             array_filter($filters)
         );
         
-        $stmt = $this->transactionModel->db->prepare("SELECT COUNT(*) FROM transactions WHERE user_id = :user_id");
-        $stmt->execute([':user_id' => $_SESSION['user_id']]);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM transactions WHERE user_id = :user_id");
+        $stmt->execute([':user_id' => $userId]);
         $total = $stmt->fetchColumn();
         $totalPages = ceil($total / $limit);
         
@@ -47,7 +49,6 @@ class TransactionController {
             'success' => $_SESSION['success'] ?? ''
         ];
         
-        // Clear session messages
         unset($_SESSION['errors']);
         unset($_SESSION['error']);
         unset($_SESSION['success']);
@@ -60,10 +61,19 @@ class TransactionController {
             header("Location: /transactions?tab=send");
             exit;
         }
-        
+
+        $userId = (int) ($_SESSION['auth_user_id'] ?? 0);
+
+        if ($userId === 0) {
+            $_SESSION['error'] = "Session invalide.";
+            header("Location: /transactions?tab=send");
+            exit;
+        }
+
         $recipient = trim($_POST['recipient'] ?? '');
         $amount = (int)($_POST['amount'] ?? 0);
         $currency = strtoupper(trim($_POST['currency'] ?? 'CDF'));
+        $pin = trim($_POST['pin'] ?? '');
         $description = trim($_POST['description'] ?? '');
         
         $errors = [];
@@ -84,18 +94,20 @@ class TransactionController {
         } elseif ($amount > 1000000) {
             $errors[] = "Le montant maximum est de 1.000.000 {$currency}";
         }
+
+        $amount = $amount * 100; // Convert to centimes
         
         $recipientUser = $this->transactionModel->findUserByAfricoNumber($recipient);
         if (!$recipientUser) {
             $errors[] = "Numéro Africo Cash invalide";
         }
         
-        if ($recipientUser && (int) $recipientUser['id'] === (int) $_SESSION['user_id']) {
+        if ($recipientUser && (int) $recipientUser['id'] === $userId) {
             $errors[] = "Vous ne pouvez pas vous envoyer de l'argent à vous-même.";
         }
         
         if ($recipientUser) {
-            $recipientAccountStmt = $this->transactionModel->db->prepare(
+            $recipientAccountStmt = $this->db->prepare(
                 'SELECT balance FROM accounts WHERE user_id = :uid AND currency = :currency LIMIT 1'
             );
             $recipientAccountStmt->execute([':uid' => $recipientUser['id'], ':currency' => $currency]);
@@ -104,12 +116,25 @@ class TransactionController {
             }
         }
         
+        if (!preg_match('/^\d{4}$/', $pin)) {
+            $errors[] = "Le PIN doit contenir 4 chiffres.";
+        } else {
+            $pinStmt = $this->db->prepare(
+                'SELECT security_pin_hash FROM user_onboarding WHERE user_id = :uid'
+            );
+            $pinStmt->execute([':uid' => $userId]);
+            $pinRow = $pinStmt->fetch();
+            if (!$pinRow || !$pinRow['security_pin_hash'] || !password_verify($pin, $pinRow['security_pin_hash'])) {
+                $errors[] = "PIN incorrect.";
+            }
+        }
+
         $fees = 0;
         $totalAmount = $amount + $fees;
         
-        $balance = $this->transactionModel->checkBalance($_SESSION['user_id'], $currency);
+        $balance = $this->transactionModel->checkBalance($userId, $currency);
         if ($balance < $totalAmount) {
-            $errors[] = "Solde insuffisant. Votre solde {$currency} est de " . number_format($balance, 0, ',', ' ') . " {$currency}";
+            $errors[] = "Solde insuffisant. Votre solde {$currency} est de " . number_format($balance / 100, 2, ',', ' ') . " {$currency}";
         }
         
         if (!empty($errors)) {
@@ -118,7 +143,7 @@ class TransactionController {
             exit;
         }
         
-        $this->transactionModel->db->beginTransaction();
+        $this->db->beginTransaction();
         
         try {
             $reference = 'TR-' . date('ymdHis') . '-' . random_int(1000, 9999);
@@ -126,7 +151,7 @@ class TransactionController {
             $senderData = [
                 'idempotency_key' => $this->transactionModel->generateIdempotencyKey(),
                 'transaction_reference' => $reference,
-                'user_id' => $_SESSION['user_id'],
+                'user_id' => $userId,
                 'type' => Transaction::TYPE_SEND,
                 'amount' => $amount,
                 'currency' => $currency,
@@ -138,8 +163,8 @@ class TransactionController {
                 'metadata' => ['description' => $description],
             ];
             
-            $senderStmt = $this->transactionModel->db->prepare('SELECT full_name, afric_number FROM users WHERE id = :id LIMIT 1');
-            $senderStmt->execute([':id' => $_SESSION['user_id']]);
+            $senderStmt = $this->db->prepare('SELECT full_name, afric_number FROM users WHERE id = :id LIMIT 1');
+            $senderStmt->execute([':id' => $userId]);
             $senderInfo = $senderStmt->fetch();
 
             $recipientData = [
@@ -159,12 +184,12 @@ class TransactionController {
             
             $this->transactionModel->create($senderData);
             $this->transactionModel->create($recipientData);
-            $this->transactionModel->updateBalance($_SESSION['user_id'], $totalAmount, 'debit', $currency);
+            $this->transactionModel->updateBalance($userId, $totalAmount, 'debit', $currency);
             $this->transactionModel->updateBalance($recipientUser['id'], $amount, 'credit', $currency);
             $this->transactionModel->updateStatus($reference, Transaction::STATUS_COMPLETED);
             $this->transactionModel->updateStatus($reference . '-R', Transaction::STATUS_COMPLETED);
             
-            $this->transactionModel->db->commit();
+            $this->db->commit();
             
             $_SESSION['receipt'] = array_merge($senderData, [
                 'created_at' => date('Y-m-d H:i:s'),
@@ -174,7 +199,7 @@ class TransactionController {
             exit;
             
         } catch (Exception $e) {
-            $this->transactionModel->db->rollBack();
+            $this->db->rollBack();
             $_SESSION['error'] = "Erreur lors du transfert: " . $e->getMessage();
             header("Location: /transactions?tab=send");
             exit;
@@ -189,7 +214,7 @@ class TransactionController {
         }
         
         $transaction = $this->transactionModel->getByReference($reference);
-        if (!$transaction || $transaction['user_id'] != $_SESSION['user_id']) {
+        if (!$transaction || (int) $transaction['user_id'] !== (int) ($_SESSION['auth_user_id'] ?? 0)) {
             header("Location: /transactions");
             exit;
         }

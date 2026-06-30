@@ -1,0 +1,190 @@
+/* ── Trust widget (dashboard) ── */
+
+.trust-widget {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.trust-loading {
+  color: var(--color-subtle);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+.trust-badge-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.trust-badge-info {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.trust-badge-label {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.trust-badge-score {
+  font-size: 0.8rem;
+  color: var(--color-subtle);
+}
+
+.trust-progress {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.trust-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--color-subtle);
+}
+
+.trust-progress-bar-bg {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.trust-progress-bar-fill {
+  height: 100%;
+  background: var(--color-brand);
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+.trust-criteria {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.trust-criterion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--color-subtle);
+}
+
+.trust-criterion.met {
+  color: var(--color-text);
+}
+
+.trust-criterion.met i {
+  color: #10b981;
+}
+
+.trust-criterion.unmet i {
+  color: var(--color-subtle);
+}
+
+/* ── Rating modal ── */
+
+.rate-modal-content {
+  display: grid;
+  gap: 0.75rem;
+  text-align: center;
+  justify-items: center;
+  padding: 0.5rem 0;
+}
+
+.rate-modal-icon {
+  font-size: 2.5rem;
+  color: var(--color-brand);
+}
+
+.star-rating {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--color-border);
+  cursor: pointer;
+  transition: transform 0.15s, color 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.2);
+}
+
+.rate-comment {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.rate-comment:focus {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(217, 180, 91, 0.2);
+}
+
+/* ── Admin badge table ── */
+
+.admin-badge-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-subtle);
+}
+
+.admin-badge-table td {
+  font-size: 0.85rem;
+}
+
+/* ── Rate button in history ── */
+
+.rate-btn {
+  padding: 0.15rem 0.35rem !important;
+  font-size: 0.7rem !important;
+  margin-left: 0.25rem;
+  color: var(--color-subtle) !important;
+}
+
+.rate-btn:hover {
+  color: gold !important;
+}
+
+/* ── Profile trust section ── */
+
+.profile-section-card {
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.profile-section-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 480px) {
+  .star-btn {
+    font-size: 1.6rem;
+  }
+}

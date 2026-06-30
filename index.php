@@ -247,7 +247,7 @@ function handle_api_request(string $path): void
                 json_response(['success' => true, 'state' => 'send_amount', 'screen' => "Montant maximum: 1 000 000 CDF.\nEntrez le montant en CDF\n0. Annuler"]);
             }
 
-            $_SESSION['ussd']['amount'] = $amount;
+            $_SESSION['ussd']['amount'] = $amount * 100;
             json_response([
                 'success' => true,
                 'state' => 'send_confirm',
@@ -332,7 +332,7 @@ function handle_api_request(string $path): void
                 $accounts->move((int) $recipientUser['id'], 'CDF', $amount);
                 $db->commit();
 
-                json_response(['success' => true, 'state' => 'menu', 'screen' => "Transfert réussi!\nRéf: {$reference}\n" . number_format($amount, 0, ',', ' ') . " CDF\nvers {$recipientUser['full_name']}\n{$menuScreen}"]);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Transfert réussi!\nRéf: {$reference}\n" . number_format($amount / 100, 0, ',', ' ') . " CDF\nvers {$recipientUser['full_name']}\n{$menuScreen}"]);
             } catch (Exception $e) {
                 if ($db->inTransaction()) {
                     $db->rollBack();
@@ -354,7 +354,7 @@ function handle_api_request(string $path): void
                 json_response(['success' => true, 'state' => 'withdraw_amount', 'screen' => "Montant maximum: 1 000 000 CDF.\nEntrez le montant en CDF\n0. Annuler"]);
             }
 
-            $_SESSION['ussd'] = ['withdraw_amount' => $amount];
+            $_SESSION['ussd'] = ['withdraw_amount' => $amount * 100];
             json_response([
                 'success' => true,
                 'state' => 'withdraw_confirm',
@@ -394,7 +394,7 @@ function handle_api_request(string $path): void
                     'metadata' => ['source' => 'ussd', 'expires_at' => date('Y-m-d H:i:s', time() + 600)],
                 ]);
 
-                json_response(['success' => true, 'state' => 'menu', 'screen' => "Retrait DAB enregistré!\nCode: {$atmCode}\n" . number_format($amount, 0, ',', ' ') . " CDF\nValable 10 minutes\n{$menuScreen}"]);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Retrait DAB enregistré!\nCode: {$atmCode}\n" . number_format($amount / 100, 0, ',', ' ') . " CDF\nValable 10 minutes\n{$menuScreen}"]);
             } catch (Exception $e) {
                 json_response(['success' => true, 'state' => 'menu', 'screen' => "Erreur lors du retrait.\n{$menuScreen}"]);
             }

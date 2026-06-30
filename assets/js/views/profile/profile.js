@@ -7,7 +7,7 @@
   let prefsData = null;
 
   function money(cents, currency) {
-    return `${Number(cents || 0).toLocaleString("fr-FR")} ${currency}`;
+    return `${(Number(cents || 0) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} ${currency}`;
   }
 
   function el(sel, ctx) {
@@ -384,6 +384,120 @@
     }
   });
 
+  /* ── Trust Score ── */
+
+  async function loadTrust() {
+    const container = el("[data-profile-trust]");
+    if (!container) return;
+
+    try {
+      const response = await api.get("/app/trust-score");
+      const trust = response.data.data;
+      renderTrustFull(container, trust);
+    } catch (_e) {
+      container.innerHTML = '<div class="profile-empty"><i class="fa-solid fa-exclamation-circle"></i><span>Indisponible.</span></div>';
+    }
+  }
+
+  function renderTrustFull(container, trust) {
+    const badgeIcons = {
+      gold: '<i class="fa-solid fa-star" style="color:gold;font-size:3rem"></i>',
+      silver: '<i class="fa-solid fa-star" style="color:silver;font-size:3rem"></i>',
+      none: '<i class="fa-solid fa-star" style="color:var(--color-subtle);font-size:3rem"></i>',
+    };
+    const badgeLabels = {
+      gold: 'Badge Doré',
+      silver: 'Badge Argenté',
+      none: 'Aucun badge',
+    };
+    const badgeClasses = {
+      gold: 'trust-badge-gold',
+      silver: 'trust-badge-silver',
+      none: 'trust-badge-none',
+    };
+
+    let criteriaHtml = "";
+    let nextBadgeHtml = "";
+
+    if (trust.progression && trust.progression.next_badge) {
+      const criteria = Object.values(trust.progression.criteria);
+      const metCount = criteria.filter(c => c.met).length;
+      const totalCount = criteria.length;
+      const pct = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
+
+      criteriaHtml = `
+        <div class="profile-section-card">
+          <h3>Progression vers <strong>${trust.progression.next_badge === 'gold' ? 'Doré' : 'Argenté'}</strong></h3>
+          <div class="trust-progress-bar-bg" style="margin:0.75rem 0">
+            <div class="trust-progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="trust-criteria" style="display:grid;gap:0.5rem">
+            ${criteria.map(c => `
+              <div class="trust-criterion ${c.met ? 'met' : 'unmet'}" style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem">
+                <i class="fa-solid ${c.met ? 'fa-check-circle' : 'fa-circle'}" style="color:${c.met ? 'var(--color-success, #10b981)' : 'var(--color-subtle)'}"></i>
+                <span>${c.label}: ${c.met ? 'OK' : (c.current != null ? c.current + ' / ' + c.required : 'Voir détail')}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+
+    if (trust.badge === 'gold' || trust.badge === 'silver') {
+      nextBadgeHtml = trust.badge === 'gold'
+        ? '<p style="color:var(--color-subtle);font-size:0.85rem">Vous avez atteint le niveau maximum !</p>'
+        : '';
+    }
+
+    container.innerHTML = `
+      <div class="profile-trust-summary" style="text-align:center;padding:1.5rem">
+        <div class="${badgeClasses[trust.badge] || 'trust-badge-none'}">${badgeIcons[trust.badge] || badgeIcons.none}</div>
+        <h3 style="margin:0.5rem 0 0">${badgeLabels[trust.badge] || badgeLabels.none}</h3>
+        <p style="font-size:1.5rem;font-weight:700;margin:0.25rem 0">${trust.trust_score} <small style="font-size:0.6em;color:var(--color-subtle)">/ 1000</small></p>
+        <small style="color:var(--color-subtle)">
+          ${trust.tx_count_6m} transactions · ${trust.rating_count} évaluations
+          ${trust.rating_count > 0 ? '· ' + trust.rating_avg.toFixed(1) + ' ★' : ''}
+        </small>
+        ${nextBadgeHtml}
+      </div>
+      ${criteriaHtml}
+      <div class="profile-section-card" id="ratings-list">
+        <h3>Évaluations reçues</h3>
+        <div data-ratings-list><p style="color:var(--color-subtle)">Chargement...</p></div>
+      </div>
+    `;
+
+    // Load ratings
+    loadRatings();
+  }
+
+  async function loadRatings() {
+    const container = el("[data-ratings-list]");
+    if (!container) return;
+
+    try {
+      const response = await api.get("/app/ratings");
+      const ratings = response.data.data.ratings || [];
+      if (!ratings.length) {
+        container.innerHTML = '<p style="color:var(--color-subtle)">Aucune évaluation pour le moment.</p>';
+        return;
+      }
+      container.innerHTML = ratings.map(r => `
+        <div class="rating-item" style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid var(--color-border)">
+          <div style="display:flex;gap:2px;color:gold">
+            ${Array.from({length: 5}, (_, i) => `<i class="fa-solid fa-star" style="color:${i < r.rating ? 'gold' : 'var(--color-border)'};font-size:0.8rem"></i>`).join('')}
+          </div>
+          <div style="flex:1;min-width:0">
+            <strong style="font-size:0.85rem">${r.rater_name}</strong>
+            ${r.comment ? '<p style="margin:0;font-size:0.8rem;color:var(--color-subtle)">"' + r.comment + '"</p>' : ''}
+          </div>
+          <small style="color:var(--color-subtle);flex-shrink:0">${new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</small>
+        </div>
+      `).join('');
+    } catch (_e) {
+      container.innerHTML = '<p style="color:var(--color-subtle)">Impossible de charger les évaluations.</p>';
+    }
+  }
+
   /* ── Init ── */
 
   documentObject.addEventListener("DOMContentLoaded", () => {
@@ -392,5 +506,6 @@
     loadSessions();
     loadLinkedAccounts();
     loadActivity();
+    loadTrust();
   });
 })(window, document);

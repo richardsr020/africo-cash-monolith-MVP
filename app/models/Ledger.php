@@ -58,20 +58,31 @@ final class Ledger
     public function totals(int $userId): array
     {
         $statement = $this->db->prepare(
-            "SELECT "
+            "SELECT currency, "
             . "SUM(CASE WHEN type IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN amount ELSE 0 END) AS income, "
             . "SUM(CASE WHEN type NOT IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN total_amount ELSE 0 END) AS outcome, "
             . "COUNT(*) AS total_count "
-            . 'FROM transactions WHERE user_id = :user_id'
+            . "FROM transactions WHERE user_id = :user_id GROUP BY currency"
         );
         $statement->execute([':user_id' => $userId]);
-        $totals = $statement->fetch() ?: [];
+        $rows = $statement->fetchAll();
 
-        return [
-            'income' => (int) ($totals['income'] ?? 0),
-            'outcome' => (int) ($totals['outcome'] ?? 0),
-            'total_count' => (int) ($totals['total_count'] ?? 0),
-        ];
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(string) $row['currency']] = [
+                'income' => (int) ($row['income'] ?? 0),
+                'outcome' => (int) ($row['outcome'] ?? 0),
+                'total_count' => (int) ($row['total_count'] ?? 0),
+            ];
+        }
+
+        foreach (['CDF', 'USD'] as $currency) {
+            if (!isset($result[$currency])) {
+                $result[$currency] = ['income' => 0, 'outcome' => 0, 'total_count' => 0];
+            }
+        }
+
+        return $result;
     }
 
     public function findByAtmCode(string $atmCode): ?array

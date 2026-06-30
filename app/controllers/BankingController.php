@@ -74,6 +74,7 @@ final class BankingController extends BaseController
             json_response(['success' => false, 'error' => ['code' => 'validation_error', 'message' => 'Devise invalide.']], 422);
         }
 
+        $amount = $amount * 100; // Convert to centimes
         $fees = (int) round($amount * 0.015);
         $totalAmount = $amount + $fees;
         $userId = (int) $this->user['id'];
@@ -151,6 +152,7 @@ final class BankingController extends BaseController
             json_response(['success' => false, 'error' => ['code' => 'validation_error', 'message' => 'Devise invalide.']], 422);
         }
 
+        $amount = $amount * 100; // Convert to centimes
         $fees = (int) round($amount * 0.025);
         $totalAmount = $amount + $fees;
         $userId = (int) $this->user['id'];

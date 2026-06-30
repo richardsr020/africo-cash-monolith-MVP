@@ -26,29 +26,29 @@
     if (!linkedAccounts.length) {
       container.innerHTML =
         '<div class="mm-empty"><i class="fa-solid fa-plug"></i><span>Aucun portefeuille mobile money connecté.</span></div>';
-      return;
-    }
-
-    container.innerHTML = linkedAccounts
-      .map(
-        (acc, idx) =>
-          `<div class="mm-linked-item" data-linked-idx="${idx}">
-            <div class="mm-linked-info">
-              <div class="mm-linked-icon"><i class="fa-solid fa-wallet"></i></div>
-              <div class="mm-linked-details">
-                <strong>${acc.provider}</strong>
-                <span>${acc.account_reference}</span>
+    } else {
+      container.innerHTML = linkedAccounts
+        .map(
+          (acc, idx) =>
+            `<div class="mm-linked-item" data-linked-idx="${idx}">
+              <div class="mm-linked-info">
+                <div class="mm-linked-icon"><i class="fa-solid fa-wallet"></i></div>
+                <div class="mm-linked-details">
+                  <strong>${acc.provider}</strong>
+                  <span>${acc.account_reference}</span>
+                </div>
               </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
-              <span class="mm-linked-status">Connecté</span>
-              <button class="btn btn-soft mm-linked-remove" type="button" data-mm-remove="${idx}">
-                <i class="fa-solid fa-unlink"></i>
-              </button>
-            </div>
-          </div>`
-      )
-      .join("");
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
+                <span class="mm-linked-status">Connecté</span>
+                <button class="btn btn-soft mm-linked-remove" type="button" data-mm-remove="${idx}">
+                  <i class="fa-solid fa-unlink"></i>
+                </button>
+              </div>
+            </div>`
+        )
+        .join("");
+    }
+    toggleSendPanel();
   }
 
   /* ── Load accounts ── */
@@ -146,7 +146,6 @@
     verifySubmit.disabled = true;
     verifySubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Vérification...';
 
-    // Simulate a 1.5s verification delay
     await new Promise((r) => setTimeout(r, 1500));
 
     verifySubmit.disabled = false;
@@ -154,7 +153,6 @@
 
     closeVerifyModal();
 
-    // Now actually link via API
     if (!currentProvider || !phoneInput) return;
     const phone = phoneInput.value.trim();
 
@@ -228,6 +226,114 @@
 
     closeConnectModal();
     openVerifyModal(phone);
+  });
+
+  /* ── Send to Mobile Money ── */
+
+  const sendPanel = document.querySelector("[data-mm-send-panel]");
+  const sendForm = document.querySelector("[data-mm-send-form]");
+  const sendAccount = document.querySelector("[data-mm-send-account]");
+  const sendAmount = document.querySelector("[data-mm-send-amount]");
+  const sendCurrency = document.querySelector("[data-mm-send-currency]");
+  const sendPin = document.querySelector("[data-mm-send-pin]");
+
+  const confirmModal = document.querySelector("[data-mm-send-confirm-modal]");
+  const confirmAccount = document.querySelector("[data-mm-send-confirm-account]");
+  const confirmAmount = document.querySelector("[data-mm-send-confirm-amount]");
+  const confirmTotal = document.querySelector("[data-mm-send-confirm-total]");
+  const confirmExecute = document.querySelector("[data-mm-send-confirm-execute]");
+
+  let pendingSend = null;
+
+  function populateSendAccounts() {
+    if (!sendAccount) return;
+    sendAccount.innerHTML =
+      '<option value="">Sélectionnez un compte...</option>' +
+      linkedAccounts
+        .map(
+          (acc) =>
+            `<option value="${acc.provider}|${acc.account_reference}">${acc.provider} - ${acc.account_reference}</option>`
+        )
+        .join("");
+  }
+
+  function toggleSendPanel() {
+    if (!sendPanel) return;
+    sendPanel.style.display = linkedAccounts.length > 0 ? "block" : "none";
+    if (linkedAccounts.length > 0) populateSendAccounts();
+  }
+
+  sendForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const accountVal = sendAccount?.value || "";
+    const amountVal = parseInt(sendAmount?.value, 10);
+    const currencyVal = sendCurrency?.value || "CDF";
+    const pinVal = sendPin?.value.trim();
+
+    if (!accountVal || !accountVal.includes("|")) {
+      dom.showToast("Sélectionnez un compte mobile money.", "error");
+      return;
+    }
+
+    if (!amountVal || amountVal < 1) {
+      dom.showToast("Montant invalide.", "error");
+      return;
+    }
+
+    if (!pinVal || !/^\d{4}$/.test(pinVal)) {
+      dom.showToast("Le PIN doit contenir 4 chiffres.", "error");
+      return;
+    }
+
+    const [provider, phone] = accountVal.split("|");
+    const displayAmount =
+      amountVal.toLocaleString("fr-FR") + " " + currencyVal;
+
+    if (confirmAccount) confirmAccount.textContent = provider + " - " + phone;
+    if (confirmAmount) confirmAmount.textContent = displayAmount;
+    if (confirmTotal) confirmTotal.textContent = displayAmount;
+
+    pendingSend = { provider, phone, amount: amountVal, currency: currencyVal, pin: pinVal };
+    confirmModal?.showModal();
+  });
+
+  document.querySelectorAll("[data-mm-send-confirm-close]").forEach((btn) => {
+    btn.addEventListener("click", () => confirmModal?.close());
+  });
+
+  confirmExecute?.addEventListener("click", async () => {
+    if (!pendingSend) return;
+
+    confirmExecute.disabled = true;
+    confirmExecute.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Envoi...';
+
+    try {
+      await api.post("/app/mobile-money/send", {
+        provider: pendingSend.provider,
+        phone: pendingSend.phone,
+        amount: pendingSend.amount,
+        currency: pendingSend.currency,
+        pin: pendingSend.pin,
+      });
+
+      dom.showToast(
+        `Envoi de ${pendingSend.amount.toLocaleString("fr-FR")} ${pendingSend.currency} vers ${pendingSend.provider} réussi !`,
+        "success"
+      );
+
+      sendForm?.reset();
+      confirmModal?.close();
+    } catch (err) {
+      dom.showToast(
+        err.response?.data?.error?.message || "Erreur lors de l'envoi.",
+        "error"
+      );
+    } finally {
+      confirmExecute.disabled = false;
+      confirmExecute.innerHTML = '<i class="fa-solid fa-check"></i> Confirmer';
+      pendingSend = null;
+    }
   });
 
   /* ── Init ── */

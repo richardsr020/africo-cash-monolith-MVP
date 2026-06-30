@@ -70,10 +70,7 @@
       return;
     }
 
-    const total = accounts.reduce((sum, a) => sum + moneyRaw(a.balance), 0);
-    const totalFormatted = accounts.length === 1
-      ? money(accounts[0].balance, accounts[0].currency)
-      : `${total.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} (total)`;
+    const totalFormatted = accounts.map(a => money(a.balance, a.currency)).join(" / ");
     dom.query("[data-total-balance]").textContent = totalFormatted;
 
     container.innerHTML = accounts.map((account, idx) => {

@@ -21,6 +21,10 @@
     return `${Number(value || 0).toLocaleString("fr-FR")} ${state.currency}`;
   }
 
+  function moneyCents(cents) {
+    return `${(Number(cents || 0) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} ${state.currency}`;
+  }
+
   function currentBuffer() {
     if (state.step === "code") return state.code;
     if (state.step === "amount") return state.amount;
@@ -143,7 +147,7 @@
       const txn = result.data.transaction;
       state.status = "Approuvé";
       state.phase = null;
-      state.result = `<strong>Retrait effectué</strong>${result.message}\nRéf: ${txn.reference}\nMontant: ${money(txn.amount)}\nSolde: ${money(txn.remaining_balance)}`;
+      state.result = `<strong>Retrait effectué</strong>${result.message}\nRéf: ${txn.reference}\nMontant: ${moneyCents(txn.amount)}\nSolde: ${moneyCents(txn.remaining_balance)}`;
       dom.showToast("Retrait DAB effectué avec succès.", "success");
     } catch (error) {
       const message = error.response?.data?.message || "Erreur lors de la finalisation.";

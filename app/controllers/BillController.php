@@ -200,11 +200,11 @@ final class BillController extends BaseController
         $payload = request_json_body();
         $service = trim((string) ($payload['service'] ?? ''));
         $reference = trim((string) ($payload['reference'] ?? ''));
-        $amount = $payload['amount'] !== null ? (int) $payload['amount'] : null;
+        $amount = $payload['amount'] !== null ? (int) $payload['amount'] * 100 : null;
         $currency = strtoupper(trim((string) ($payload['currency'] ?? 'CDF')));
         $frequency = trim((string) ($payload['frequency'] ?? 'monthly'));
         $dayOfMonth = (int) ($payload['day_of_month'] ?? 1);
-        $maxAmount = $payload['max_amount'] !== null ? (int) $payload['max_amount'] : null;
+        $maxAmount = $payload['max_amount'] !== null ? (int) $payload['max_amount'] * 100 : null;
 
         if ($service === '' || $reference === '') {
             json_response(['success' => false, 'error' => ['code' => 'validation_error', 'message' => 'Service et référence requis.']], 422);

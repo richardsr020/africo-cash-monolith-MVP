@@ -72,6 +72,7 @@ final class WithdrawController extends BaseController
             json_response(['success' => false, 'error' => ['code' => 'validation_error', 'message' => "Le montant maximum est de {$maxAmount} {$currency}."]], 422);
         }
 
+        $amount = $amount * 100; // Convert to centimes
         $userId = (int) $this->user['id'];
 
         $fees = 0;
@@ -152,6 +153,7 @@ final class WithdrawController extends BaseController
             json_response(['success' => false, 'error' => ['code' => 'agent_not_found', 'message' => 'Agent introuvable. Vérifiez le numéro.']], 404);
         }
 
+        $amount = $amount * 100; // Convert to centimes
         $userId = (int) $this->user['id'];
 
         $agentAccountStmt = $this->db->prepare(
@@ -267,6 +269,7 @@ final class WithdrawController extends BaseController
             json_response(['success' => false, 'message' => "Le montant maximum est de {$maxAmount} {$currency}."], 422);
         }
 
+        $amount = $amount * 100; // Convert to centimes
         $transaction = $this->ledger->findByAtmCode($code);
 
         if (!$transaction) {

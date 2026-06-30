@@ -307,6 +307,107 @@
   box-shadow: 0 0 0 3px rgba(217, 180, 91, 0.2);
 }
 
+/* ── Send form ── */
+
+.mm-send-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.mm-send-rows {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.mm-send-inline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.mm-field--grow {
+  flex: 1;
+}
+
+.mm-field--narrow {
+  min-width: 100px;
+}
+
+.mm-field select {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  width: 100%;
+}
+
+.mm-field select:focus {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(217, 180, 91, 0.2);
+}
+
+.mm-send-form .btn-primary {
+  justify-self: end;
+}
+
+/* ── Send confirm modal ── */
+
+.mm-send-confirm-content {
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+  justify-items: center;
+  padding: 0.5rem 0;
+}
+
+.mm-send-confirm-icon {
+  font-size: 2.5rem;
+  color: var(--color-brand);
+}
+
+.mm-send-confirm-details {
+  width: 100%;
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.mm-send-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.mm-send-confirm-row span {
+  color: var(--color-subtle);
+}
+
+.mm-send-confirm-row strong {
+  font-weight: 700;
+}
+
+.mm-send-confirm-row--total {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+}
+
+.mm-send-confirm-row--total strong {
+  color: var(--color-brand-strong);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 480px) {

@@ -4,7 +4,7 @@
   const api = windowObject.AfricoApi;
 
   function money(cents, currency) {
-    return `${Number(cents || 0).toLocaleString("fr-FR")} ${currency}`;
+    return `${(Number(cents || 0) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} ${currency}`;
   }
 
   function el(selector, ctx) {
