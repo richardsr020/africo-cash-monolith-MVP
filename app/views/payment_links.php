@@ -1,23 +1,42 @@
-<main class="app-page" data-page="payment_links">
-  <nav class="page-nav">
-    <a href="<?= route_path('wallet') ?>" class="btn btn-soft btn-icon" aria-label="Retour"><i class="fa fa-arrow-left"></i></a>
+<?php require __DIR__ . '/../partials/app_shell_start.php'; ?>
+
+<header class="wallet-header">
+  <div class="wallet-header__left">
     <h1>Liens de paiement</h1>
-  </nav>
+    <p class="wallet-header__date">Créez et gérez vos liens de paiement sécurisés</p>
+  </div>
+  <div class="wallet-header__right">
+    <a href="<?= route_path('payment_links') ?>?action=create" class="btn btn-primary" data-create-link-btn>
+      <i class="fa-solid fa-plus"></i> Nouveau lien
+    </a>
+  </div>
+</header>
 
-  <section class="page-tabs" role="tablist">
-    <button class="tab-btn active" data-tab="list" role="tab" aria-selected="true">Mes liens</button>
-    <button class="tab-btn" data-tab="create" role="tab" aria-selected="false">Créer un lien</button>
-  </section>
+<section class="wallet-tabs" role="tablist">
+  <button class="wallet-tab wallet-tab--active" data-tab="list" role="tab" aria-selected="true">
+    <i class="fa-solid fa-list"></i> Mes liens
+  </button>
+  <button class="wallet-tab" data-tab="create" role="tab" aria-selected="false">
+    <i class="fa-solid fa-circle-plus"></i> Créer
+  </button>
+</section>
 
-  <section class="tab-panel active" data-panel="list" role="tabpanel">
-    <div class="links-list" data-links-list>
-      <p class="loading">Chargement...</p>
+<section class="wallet-panel wallet-panel--active" data-panel="list">
+  <div class="links-list" data-links-list>
+    <div class="wallet-balance-skeleton">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="tab-panel" data-panel="create" role="tabpanel">
+<section class="wallet-panel" data-panel="create" style="display:none">
+  <article class="panel">
+    <div class="panel__head">
+      <h2><i class="fa-solid fa-pen"></i> Nouveau lien de paiement</h2>
+    </div>
     <form class="link-form" data-link-form>
-      <div class="form-group">
+      <div class="form-field">
         <label for="link-type">Type de lien</label>
         <select id="link-type" data-field="type" required>
           <option value="send">Envoi à un utilisateur</option>
@@ -26,7 +45,7 @@
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-field">
         <label for="link-currency">Devise</label>
         <select id="link-currency" data-field="currency" required>
           <option value="CDF">CDF</option>
@@ -34,24 +53,22 @@
         </select>
       </div>
 
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" data-field="amount-toggle" checked>
-          <span>Montant fixe</span>
-        </label>
-      </div>
+      <label class="checkbox-field">
+        <input type="checkbox" data-field="amount-toggle" checked>
+        <span>Montant fixe</span>
+      </label>
 
-      <div class="form-group" data-amount-group>
-        <label for="link-amount">Montant</label>
+      <div class="form-field" data-amount-group>
+        <label for="link-amount">Montant (en centimes)</label>
         <input type="number" id="link-amount" data-field="amount" min="100" placeholder="Ex: 50000">
       </div>
 
-      <div class="form-group hidden" data-max-amount-group>
-        <label for="link-max-amount">Montant maximum</label>
+      <div class="form-field hidden" data-max-amount-group>
+        <label for="link-max-amount">Montant maximum (en centimes)</label>
         <input type="number" id="link-max-amount" data-field="max_amount" min="100" placeholder="Ex: 100000">
       </div>
 
-      <div class="form-group">
+      <div class="form-field">
         <label for="link-duration">Durée de validité</label>
         <select id="link-duration" data-field="duration_hours">
           <option value="1">1 heure</option>
@@ -63,29 +80,32 @@
         </select>
       </div>
 
-      <div class="form-group">
-        <label for="link-pin">PIN (4 à 8 chiffres)</label>
+      <div class="form-field">
+        <label for="link-pin">PIN de sécurité (4 à 8 chiffres)</label>
         <input type="password" id="link-pin" data-field="pin" pattern="[0-9]{4,8}" inputmode="numeric" maxlength="8" required placeholder="Ex: 1234">
       </div>
 
       <button type="submit" class="btn btn-primary btn-full">Générer le lien</button>
     </form>
-  </section>
+  </article>
+</section>
 
-  <div class="modal-overlay hidden" data-link-detail>
-    <div class="modal-card">
-      <button class="modal-close" data-close-modal aria-label="Fermer">&times;</button>
-      <h2>Lien créé !</h2>
-      <div class="qr-wrapper" data-qr-container></div>
-      <p class="link-code-display" data-link-code></p>
-      <p class="link-info" data-link-info></p>
-      <p class="link-pin-display"><strong>PIN :</strong> <span data-link-pin></span></p>
-      <button class="btn btn-soft btn-full" data-copy-code>Copier le code</button>
-      <button class="btn btn-soft btn-full" data-download-qr>Télécharger le QR code</button>
+<dialog class="modal" data-link-detail>
+  <div class="modal-card">
+    <button class="modal-close" data-close-modal aria-label="Fermer">&times;</button>
+    <h2>Lien créé !</h2>
+    <p class="modal-copy">Partagez ce code ou le QR code avec le payeur.</p>
+    <div class="qr-wrapper" data-qr-container></div>
+    <p class="modal-code" data-link-code></p>
+    <p class="link-info" data-link-info></p>
+    <p class="modal-pin"><strong>PIN :</strong> <span data-link-pin></span></p>
+    <div class="modal-actions">
+      <button class="btn btn-soft btn-full" data-copy-code><i class="fa-solid fa-copy"></i> Copier le code</button>
+      <button class="btn btn-soft btn-full" data-download-qr><i class="fa-solid fa-download"></i> QR code</button>
     </div>
   </div>
+</dialog>
 
-  <div class="toast-notify" data-toast aria-live="polite" aria-atomic="true"></div>
-</main>
+<?php require __DIR__ . '/../partials/app_shell_end.php'; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>

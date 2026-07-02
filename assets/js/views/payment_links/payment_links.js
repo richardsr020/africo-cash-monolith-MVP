@@ -1,29 +1,34 @@
-(function () {
-  const dom = window.dom;
-  const api = window.apiClient;
-  const toast = dom.query("[data-toast]");
+(function bootPaymentLinks(windowObject, documentObject) {
+  "use strict";
+  const dom = windowObject.AfricoDom;
+  const api = windowObject.AfricoApi;
 
-  const tabs = dom.queryAll("[data-tab]");
-  const panels = {
+  var tabs = dom.queryAll("[data-tab]");
+  var panels = {
     list: dom.query("[data-panel='list']"),
     create: dom.query("[data-panel='create']"),
   };
-  const linksList = dom.query("[data-links-list]");
-  const form = dom.query("[data-link-form]");
-  const detailModal = dom.query("[data-link-detail]");
-  const qrContainer = dom.query("[data-qr-container]");
-  const linkCodeDisplay = dom.query("[data-link-code]");
-  const linkInfo = dom.query("[data-link-info]");
-  const linkPin = dom.query("[data-link-pin]");
+  var linksList = dom.query("[data-links-list]");
+  var form = dom.query("[data-link-form]");
+  var detailModal = dom.query("[data-link-detail]");
+  var qrContainer = dom.query("[data-qr-container]");
+  var linkCodeDisplay = dom.query("[data-link-code]");
+  var linkInfo = dom.query("[data-link-info]");
+  var linkPin = dom.query("[data-link-pin]");
+
+  function money(cents, currency) {
+    return (Number(cents || 0) / 100).toLocaleString("fr-CD", { maximumFractionDigits: 2 }) + " " + currency;
+  }
 
   function switchTab(name) {
     tabs.forEach(function (t) {
-      const isActive = t.getAttribute("data-tab") === name;
-      t.classList.toggle("active", isActive);
+      var isActive = t.getAttribute("data-tab") === name;
+      t.classList.toggle("wallet-tab--active", isActive);
       t.setAttribute("aria-selected", String(isActive));
     });
     Object.keys(panels).forEach(function (key) {
-      panels[key].classList.toggle("active", key === name);
+      panels[key].style.display = key === name ? "" : "none";
+      panels[key].classList.toggle("wallet-panel--active", key === name);
     });
     if (name === "list") loadLinks();
   }
@@ -34,11 +39,19 @@
     });
   });
 
-  function showToast(msg, type) {
-    toast.textContent = msg;
-    toast.className = "toast-notify " + (type || "info");
-    clearTimeout(toast._hide);
-    toast._hide = setTimeout(function () { toast.className = "toast-notify hidden"; }, 3000);
+  var createBtn = dom.query("[data-create-link-btn]");
+  if (createBtn) {
+    dom.on(createBtn, "click", function (e) {
+      var params = new URLSearchParams(windowObject.location.search);
+      if (params.get("action") === "create") {
+        e.preventDefault();
+        switchTab("create");
+      }
+    });
+    var params = new URLSearchParams(windowObject.location.search);
+    if (params.get("action") === "create") {
+      switchTab("create");
+    }
   }
 
   function getField(name) {
@@ -46,15 +59,10 @@
     return el ? el.value : "";
   }
 
-  function setField(name, val) {
-    var el = dom.query("[data-field='" + name + "']");
-    if (el) el.value = val;
-  }
-
   function loadLinks() {
-    linksList.innerHTML = '<p class="loading">Chargement...</p>';
-    api.get("/api/app/links").then(function (data) {
-      renderLinks(data.data || []);
+    linksList.innerHTML = '<div class="wallet-balance-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
+    api.get("/app/links").then(function (resp) {
+      renderLinks(resp.data.data || []);
     }).catch(function () {
       linksList.innerHTML = '<p class="empty-state">Erreur de chargement.</p>';
     });
@@ -69,23 +77,20 @@
     links.forEach(function (link) {
       var typeLabel = { send: "Envoi", withdraw: "Retrait agent", merchant: "Paiement marchand" }[link.type] || link.type;
       var statusLabel = { active: "Actif", used: "Utilisé", expired: "Expiré", revoked: "Révoqué" }[link.status] || link.status;
-      var statusClass = "status-" + link.status;
-      var amountStr = link.amount ? (link.amount / 100).toLocaleString("fr-CD") + " " + link.currency : "Montant libre";
-      var expires = new Date(link.expires_at.replace(" ", "T")).toLocaleString("fr-CD");
+      var amountStr = link.amount ? money(link.amount, link.currency) : "Montant libre";
+      var expires = link.expires_at ? new Date(link.expires_at.replace(" ", "T")).toLocaleString("fr-CD") : "";
 
       html += '<div class="link-card">';
-      html += '  <div class="link-card-header">';
-      html += '    <span class="link-type-badge">' + typeLabel + "</span>";
-      html += '    <span class="link-status ' + statusClass + '">' + statusLabel + "</span>";
+      html += '  <div class="link-card__head">';
+      html += '    <span class="link-badge"><i class="fa-solid fa-' + (link.type === "send" ? "paper-plane" : link.type === "withdraw" ? "hand-holding-dollar" : "store") + '"></i> ' + typeLabel + "</span>";
+      html += '    <span class="link-badge link-badge--' + link.status + '">' + statusLabel + "</span>";
       html += "  </div>";
-      html += '  <div class="link-card-body">';
-      html += '    <p class="link-code">' + link.code + "</p>";
-      html += '    <p class="link-meta">' + amountStr + " &middot; Expire le " + expires + "</p>";
-      html += "  </div>";
+      html += '  <p class="link-code">' + link.code + "</p>";
+      html += '  <p class="link-meta">' + amountStr + (expires ? " &middot; Expire le " + expires : "") + "</p>";
       if (link.status === "active") {
-        html += '  <div class="link-card-actions">';
-        html += '    <button class="btn btn-sm btn-outline" data-share="' + link.code + '">Partager</button>';
-        html += '    <button class="btn btn-sm btn-danger" data-revoke="' + link.id + '">Révoquer</button>';
+        html += '  <div class="link-actions">';
+        html += '    <button class="btn btn-soft" data-share="' + link.code + '"><i class="fa-solid fa-share-nodes"></i> Partager</button>';
+        html += '    <button class="btn btn-soft" data-revoke="' + link.id + '"><i class="fa-solid fa-ban"></i> Révoquer</button>';
         html += "  </div>";
       }
       html += "</div>";
@@ -104,12 +109,12 @@
     dom.queryAll("[data-share]").forEach(function (btn) {
       dom.on(btn, "click", function () {
         var code = btn.getAttribute("data-share");
-        var link = window.location.origin + "/payer?code=" + encodeURIComponent(code);
+        var url = windowObject.location.origin + "/payer?code=" + encodeURIComponent(code);
         if (navigator.share) {
-          navigator.share({ title: "Lien de paiement Africo Cash", text: code, url: link });
+          navigator.share({ title: "Lien de paiement Africo Cash", text: code, url: url });
         } else {
           navigator.clipboard.writeText(code).then(function () {
-            showToast("Code copié !", "success");
+            dom.showToast("Code copié !", "success");
           });
         }
       });
@@ -117,11 +122,11 @@
   }
 
   function revokeLink(id) {
-    api.post("/api/app/links/" + id + "/revoke").then(function () {
-      showToast("Lien révoqué.", "success");
+    api.post("/app/links/" + id + "/revoke").then(function () {
+      dom.showToast("Lien révoqué.", "success");
       loadLinks();
     }).catch(function () {
-      showToast("Erreur lors de la révocation.", "error");
+      dom.showToast("Erreur lors de la révocation.", "error");
     });
   }
 
@@ -156,28 +161,26 @@
       if (ma) payload.max_amount = ma;
     }
     if (!payload.amount && !payload.max_amount) {
-      showToast("Veuillez définir un montant ou un plafond.", "error");
+      dom.showToast("Veuillez définir un montant ou un plafond.", "error");
       return;
     }
     if (!payload.pin || payload.pin.length < 4) {
-      showToast("PIN requis (4 à 8 chiffres).", "error");
+      dom.showToast("PIN requis (4 à 8 chiffres).", "error");
       return;
     }
 
     var submitBtn = form.querySelector("button[type='submit']");
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Génération...";
+    dom.setSubmitting(submitBtn, true, "Génération...");
 
-    api.post("/api/app/links/create", payload).then(function (data) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Générer le lien";
+    api.post("/app/links/create", payload).then(function (resp) {
+      dom.setSubmitting(submitBtn, false);
       form.reset();
-      showLinkDetail(data.data);
+      showLinkDetail(resp.data.data);
     }).catch(function (err) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Générer le lien";
-      var msg = (err && err.error && err.error.message) || "Erreur lors de la création.";
-      showToast(msg, "error");
+      dom.setSubmitting(submitBtn, false);
+      var data = err.response ? err.response.data : null;
+      var msg = (data && data.error && data.error.message) || data && data.message || "Erreur lors de la création.";
+      dom.showToast(msg, "error");
     });
   });
 
@@ -186,11 +189,11 @@
     linkCodeDisplay.textContent = link.code;
 
     var typeLabel = { send: "Envoi", withdraw: "Retrait agent", merchant: "Paiement marchand" }[link.type] || link.type;
-    var amountStr = link.amount ? (link.amount / 100).toLocaleString("fr-CD") + " " + link.currency : "Montant libre";
+    var amountStr = link.amount ? money(link.amount, link.currency) : "Montant libre";
     linkInfo.textContent = typeLabel + " - " + amountStr;
     linkPin.textContent = getField("pin");
 
-    var redeemUrl = window.location.origin + "/payer?code=" + encodeURIComponent(link.code);
+    var redeemUrl = windowObject.location.origin + "/payer?code=" + encodeURIComponent(link.code);
     new QRCode(qrContainer, {
       text: redeemUrl,
       width: 200,
@@ -200,43 +203,39 @@
       correctLevel: QRCode.CorrectLevel.H,
     });
 
-    detailModal.classList.remove("hidden");
+    dom.openModal(detailModal);
   }
 
-  dom.query("[data-close-modal]").forEach(function (btn) {
+  dom.queryAll("[data-close-modal]").forEach(function (btn) {
     dom.on(btn, "click", function () {
-      detailModal.classList.add("hidden");
+      dom.closeModal(detailModal);
       switchTab("list");
     });
   });
 
   dom.on(detailModal, "click", function (e) {
-    if (e.target === detailModal) {
-      detailModal.classList.add("hidden");
+    if (e.target === detailModal || e.target.classList.contains("modal")) {
+      dom.closeModal(detailModal);
       switchTab("list");
     }
   });
 
-  dom.query("[data-copy-code]").forEach(function (btn) {
-    dom.on(btn, "click", function () {
-      var code = linkCodeDisplay.textContent;
-      navigator.clipboard.writeText(code).then(function () {
-        showToast("Code copié !", "success");
-      });
+  dom.on(dom.query("[data-copy-code]"), "click", function () {
+    var code = linkCodeDisplay.textContent;
+    navigator.clipboard.writeText(code).then(function () {
+      dom.showToast("Code copié !", "success");
     });
   });
 
-  dom.query("[data-download-qr]").forEach(function (btn) {
-    dom.on(btn, "click", function () {
-      var canvas = qrContainer.querySelector("canvas");
-      if (canvas) {
-        var link = document.createElement("a");
-        link.download = "africo-payment-link.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      }
-    });
+  dom.on(dom.query("[data-download-qr]"), "click", function () {
+    var canvas = qrContainer.querySelector("canvas");
+    if (canvas) {
+      var link = documentObject.createElement("a");
+      link.download = "africo-payment-link.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
   });
 
   loadLinks();
-})();
+})(window, document);

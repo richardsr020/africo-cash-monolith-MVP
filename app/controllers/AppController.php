@@ -127,6 +127,78 @@ final class AppController extends BaseController
             return true;
         }
 
+        if ($route === '/admin/users') {
+            $this->requireMethod($method, 'GET');
+            $this->adminUsers();
+            return true;
+        }
+
+        if ($route === '/admin/agents') {
+            $this->requireMethod($method, 'GET');
+            $this->adminAgents();
+            return true;
+        }
+
+        if ($route === '/admin/transactions') {
+            $this->requireMethod($method, 'GET');
+            $this->adminTransactions();
+            return true;
+        }
+
+        if ($route === '/admin/exchange-rates') {
+            $this->requireMethod($method, 'GET');
+            $this->adminExchangeRates();
+            return true;
+        }
+
+        if ($route === '/admin/settings') {
+            $this->requireMethod($method, 'GET');
+            $this->adminSettings();
+            return true;
+        }
+
+        if ($route === '/admin/volume-chart') {
+            $this->requireMethod($method, 'GET');
+            $this->adminVolumeChart();
+            return true;
+        }
+
+        if ($route === '/admin/audit-logs') {
+            $this->requireMethod($method, 'GET');
+            $this->adminAuditLogs();
+            return true;
+        }
+
+        if (preg_match('#^/admin/users/(\d+)/toggle-status$#', $route, $m)) {
+            $this->requireMethod($method, 'POST');
+            $this->adminToggleUserStatus((int) $m[1]);
+            return true;
+        }
+
+        if (preg_match('#^/admin/users/(\d+)/role$#', $route, $m)) {
+            $this->requireMethod($method, 'POST');
+            $this->adminChangeUserRole((int) $m[1]);
+            return true;
+        }
+
+        if (preg_match('#^/admin/agents/(\d+)/commission$#', $route, $m)) {
+            $this->requireMethod($method, 'POST');
+            $this->adminUpdateAgentCommission((int) $m[1]);
+            return true;
+        }
+
+        if (preg_match('#^/admin/exchange-rates/(\d+)$#', $route, $m)) {
+            $this->requireMethod($method, 'POST');
+            $this->adminUpdateExchangeRate((int) $m[1]);
+            return true;
+        }
+
+        if (preg_match('#^/admin/settings/(\w+)$#', $route, $m)) {
+            $this->requireMethod($method, 'POST');
+            $this->adminUpdateSetting($m[1]);
+            return true;
+        }
+
         if ($route === '/links') {
             $this->requireMethod($method, 'GET');
             $this->listLinks();
@@ -609,6 +681,234 @@ final class AppController extends BaseController
         $badgeData = $this->trustScore->getAllWithBadge();
 
         json_response(['success' => true, 'data' => compact('users', 'agents', 'transactions', 'volume', 'silverCount', 'goldCount', 'badgeData')]);
+    }
+
+    private function adminUsers(): void
+    {
+        $search = (string) ($_GET['search'] ?? '');
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $where = '';
+        $params = [];
+        if ($search !== '') {
+            $where = 'WHERE (u.full_name LIKE :search OR u.afric_number LIKE :search2 OR u.email LIKE :search3)';
+            $params[':search'] = "%{$search}%";
+            $params[':search2'] = "%{$search}%";
+            $params[':search3'] = "%{$search}%";
+        }
+
+        $count = (int) $this->db->prepare("SELECT COUNT(*) FROM users u {$where}")->execute($params)->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT u.id, u.afric_number, u.full_name, u.email, u.role, u.is_active, u.account_type, "
+            . "u.is_verified, u.created_at, "
+            . "COALESCE(ts.badge, 'none') AS badge, COALESCE(ts.trust_score, 0) AS trust_score "
+            . "FROM users u "
+            . "LEFT JOIN user_trust_scores ts ON ts.user_id = u.id "
+            . "{$where} ORDER BY u.created_at DESC LIMIT :limit OFFSET :offset"
+        );
+        $stmt->execute(array_merge($params, [':limit' => $perPage, ':offset' => $offset]));
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        json_response(['success' => true, 'data' => [
+            'users' => $users,
+            'total' => $count,
+            'page' => $page,
+            'per_page' => $perPage,
+        ]]);
+    }
+
+    private function adminToggleUserStatus(int $userId): void
+    {
+        $stmt = $this->db->prepare('UPDATE users SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END WHERE id = :id');
+        $stmt->execute([':id' => $userId]);
+
+        if ($stmt->rowCount() === 0) {
+            json_response(['success' => false, 'error' => ['code' => 'not_found', 'message' => 'Utilisateur introuvable.']], 404);
+        }
+
+        $stmt = $this->db->prepare('SELECT is_active FROM users WHERE id = :id');
+        $stmt->execute([':id' => $userId]);
+        $isActive = (int) $stmt->fetchColumn();
+
+        json_response(['success' => true, 'data' => ['is_active' => $isActive === 1]]);
+    }
+
+    private function adminChangeUserRole(int $userId): void
+    {
+        $payload = request_json_body();
+        $role = (string) ($payload['role'] ?? '');
+
+        if (!in_array($role, ['customer', 'agent', 'admin'], true)) {
+            json_response(['success' => false, 'error' => ['code' => 'invalid_role', 'message' => 'Rôle invalide.']], 422);
+        }
+
+        $stmt = $this->db->prepare('UPDATE users SET role = :role WHERE id = :id');
+        $stmt->execute([':role' => $role, ':id' => $userId]);
+
+        if ($stmt->rowCount() === 0) {
+            json_response(['success' => false, 'error' => ['code' => 'not_found', 'message' => 'Utilisateur introuvable.']], 404);
+        }
+
+        json_response(['success' => true, 'data' => ['role' => $role]]);
+    }
+
+    private function adminAgents(): void
+    {
+        $stmt = $this->db->prepare(
+            "SELECT u.id, u.afric_number, u.full_name, u.email, u.is_active, u.created_at, "
+            . "a.agent_code, a.commission_rate, a.phone AS agent_phone "
+            . "FROM users u JOIN agents a ON a.user_id = u.id "
+            . "ORDER BY u.created_at DESC"
+        );
+        $stmt->execute();
+        $agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        json_response(['success' => true, 'data' => $agents]);
+    }
+
+    private function adminUpdateAgentCommission(int $agentId): void
+    {
+        $payload = request_json_body();
+        $rate = (int) ($payload['commission_rate'] ?? 0);
+
+        if ($rate < 0 || $rate > 100000) {
+            json_response(['success' => false, 'error' => ['code' => 'invalid_rate', 'message' => 'Taux invalide (0-100000 bps).']], 422);
+        }
+
+        $stmt = $this->db->prepare('SELECT id FROM agents WHERE id = :id');
+        $stmt->execute([':id' => $agentId]);
+        if (!$stmt->fetch()) {
+            json_response(['success' => false, 'error' => ['code' => 'not_found', 'message' => 'Agent introuvable.']], 404);
+        }
+
+        $stmt = $this->db->prepare('UPDATE agents SET commission_rate = :rate WHERE id = :id');
+        $stmt->execute([':rate' => $rate, ':id' => $agentId]);
+
+        json_response(['success' => true, 'data' => ['commission_rate' => $rate]]);
+    }
+
+    private function adminTransactions(): void
+    {
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 30;
+        $offset = ($page - 1) * $perPage;
+
+        $count = (int) $this->db->query('SELECT COUNT(*) FROM transactions')->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT t.id, t.transaction_reference, t.type, t.amount, t.currency, t.fees, t.total_amount, "
+            . "t.status, t.recipient_name, t.recipient_account, t.created_at, "
+            . "u.full_name AS user_name, u.afric_number AS user_afric "
+            . "FROM transactions t "
+            . "LEFT JOIN users u ON u.id = t.user_id "
+            . "ORDER BY t.created_at DESC LIMIT :limit OFFSET :offset"
+        );
+        $stmt->execute([':limit' => $perPage, ':offset' => $offset]);
+        $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        json_response(['success' => true, 'data' => [
+            'transactions' => $transactions,
+            'total' => $count,
+            'page' => $page,
+            'per_page' => $perPage,
+        ]]);
+    }
+
+    private function adminExchangeRates(): void
+    {
+        $stmt = $this->db->query(
+            "SELECT * FROM exchange_rates ORDER BY effective_date DESC"
+        );
+        $rates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        json_response(['success' => true, 'data' => $rates]);
+    }
+
+    private function adminUpdateExchangeRate(int $rateId): void
+    {
+        $payload = request_json_body();
+        $rate = (int) ($payload['rate'] ?? 0);
+
+        if ($rate <= 0) {
+            json_response(['success' => false, 'error' => ['code' => 'invalid_rate', 'message' => 'Taux invalide.']], 422);
+        }
+
+        $stmt = $this->db->prepare('UPDATE exchange_rates SET rate = :rate WHERE id = :id');
+        $stmt->execute([':rate' => $rate, ':id' => $rateId]);
+
+        if ($stmt->rowCount() === 0) {
+            json_response(['success' => false, 'error' => ['code' => 'not_found', 'message' => 'Taux introuvable.']], 404);
+        }
+
+        json_response(['success' => true, 'data' => ['rate' => $rate]]);
+    }
+
+    private function adminSettings(): void
+    {
+        $stmt = $this->db->query('SELECT * FROM admin_settings ORDER BY setting_key');
+        $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        json_response(['success' => true, 'data' => $settings]);
+    }
+
+    private function adminUpdateSetting(string $key): void
+    {
+        $payload = request_json_body();
+        $value = (string) ($payload['value'] ?? '');
+
+        $stmt = $this->db->prepare('UPDATE admin_settings SET setting_value = :val WHERE setting_key = :key');
+        $stmt->execute([':val' => $value, ':key' => $key]);
+
+        if ($stmt->rowCount() === 0) {
+            json_response(['success' => false, 'error' => ['code' => 'not_found', 'message' => 'Paramètre introuvable.']], 404);
+        }
+
+        json_response(['success' => true, 'data' => ['setting_key' => $key, 'setting_value' => $value]]);
+    }
+
+    private function adminVolumeChart(): void
+    {
+        $stmt = $this->db->query(
+            "SELECT DATE(created_at) AS day, currency, "
+            . "SUM(CASE WHEN type IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN total_amount ELSE 0 END) AS income, "
+            . "SUM(CASE WHEN type NOT IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money', 'wallet_transfer', 'early_unlock') THEN total_amount ELSE 0 END) AS outcome "
+            . "FROM transactions "
+            . "WHERE created_at >= datetime('now', '-30 days') "
+            . "GROUP BY DATE(created_at), currency "
+            . "ORDER BY day ASC"
+        );
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $chart = [];
+        foreach ($rows as $row) {
+            $day = $row['day'];
+            $cur = $row['currency'];
+            if (!isset($chart[$day])) $chart[$day] = [];
+            $chart[$day][$cur] = [
+                'income' => (int) $row['income'],
+                'outcome' => (int) $row['outcome'],
+            ];
+        }
+
+        json_response(['success' => true, 'data' => $chart]);
+    }
+
+    private function adminAuditLogs(): void
+    {
+        $stmt = $this->db->prepare(
+            "SELECT l.id, l.action, l.entity_type, l.entity_id, l.old_values, l.new_values, "
+            . "l.ip_address, l.created_at, u.full_name AS user_name "
+            . "FROM audit_logs l "
+            . "LEFT JOIN users u ON u.id = l.user_id "
+            . "ORDER BY l.created_at DESC LIMIT 50"
+        );
+        $stmt->execute();
+        $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        json_response(['success' => true, 'data' => $logs]);
     }
 
     /* ── Wallet transfers ── */

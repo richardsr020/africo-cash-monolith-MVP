@@ -1,91 +1,164 @@
-.redeem-form-section {
-  max-width: 400px;
-  margin: 0 auto;
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
+/* ── STEPS ── */
 .redeem-steps {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
 }
 
 .step {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: var(--muted-color, #64748b);
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
 }
 
-.step.active .step-num,
-.step.done .step-num {
-  background: var(--primary-color, #f5b041);
-  color: #fff;
-}
-
-.step.active { color: var(--text-color, #1a1a2e); font-weight: 600; }
-.step.done { color: var(--success-color, #28a745); }
+.step.active { color: var(--color-brand-strong); }
+.step.done { color: var(--color-brand-strong); }
 
 .step-num {
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--border-color, #e2e8f0);
-  color: var(--muted-color, #64748b);
+  font-size: 16px;
+  background: var(--color-bg);
+  color: var(--color-muted);
+  border: 2px solid var(--color-border);
+  transition: all var(--transition);
 }
 
+.step.active .step-num {
+  background: var(--color-brand);
+  color: #fff;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 4px rgba(217, 180, 91, 0.2);
+}
+
+.step.done .step-num {
+  background: var(--color-brand-strong);
+  color: #fff;
+  border-color: var(--color-brand-strong);
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.step-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 8px 22px;
+  transition: background var(--transition);
+}
+
+.step.active + .step-connector,
+.step.done + .step-connector {
+  background: var(--color-brand);
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+}
+
+/* ── FORM ── */
 .redeem-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 20px;
 }
 
-.redeem-form .form-group.hidden { display: none; }
-
-.code-input-wrapper input {
-  font-family: monospace;
-  font-size: 1.2rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+.redeem-code-input {
+  font-family: monospace !important;
+  font-size: 1.3rem !important;
+  letter-spacing: 3px;
   text-align: center;
+  text-transform: uppercase;
 }
 
 .help-text {
-  font-size: 0.75rem;
-  color: var(--muted-color, #64748b);
-  margin-top: 0.25rem;
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
 }
 
+.hidden { display: none !important; }
+
+/* ── RESULT ── */
 .redeem-result {
   text-align: center;
-  padding: 2rem 1rem;
+  animation: fade-up .4s ease both;
+  margin-top: 1rem;
 }
 
 .redeem-result.hidden { display: none; }
 
 .result-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: 3.5rem;
+  color: var(--color-brand-strong);
+  margin-bottom: 0.75rem;
 }
-
-.result-icon.success { color: var(--success-color, #28a745); }
 
 .redeem-result h2 {
   margin: 0 0 1rem;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
+  font-weight: 800;
 }
 
-.redeem-result p {
-  margin: 0.25rem 0;
-  font-size: 0.95rem;
+.result-details {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.25rem;
+  text-align: left;
 }
 
-.redeem-result .btn {
-  margin-top: 1.5rem;
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-label {
+  font-size: 13px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.result-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.mono { font-family: monospace; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 500px) {
+  .step-connector { width: 20px; }
+  .step-num { width: 34px; height: 34px; font-size: 14px; }
+  .step-label { font-size: 10px; }
 }

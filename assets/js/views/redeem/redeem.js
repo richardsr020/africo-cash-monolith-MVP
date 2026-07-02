@@ -1,7 +1,7 @@
-(function () {
-  var dom = window.dom;
-  var api = window.apiClient;
-  var toast = dom.query("[data-toast]");
+(function bootRedeem(windowObject, documentObject) {
+  "use strict";
+  var dom = windowObject.AfricoDom;
+  var api = windowObject.AfricoApi;
 
   var form = dom.query("[data-redeem-form]");
   var steps = {
@@ -15,14 +15,6 @@
   function getField(name) {
     var el = dom.query("[data-field='" + name + "']");
     return el ? el.value : "";
-  }
-
-  function showToast(msg, type) {
-    if (!toast) return;
-    toast.textContent = msg;
-    toast.className = "toast-notify " + (type || "info");
-    clearTimeout(toast._hide);
-    toast._hide = setTimeout(function () { toast.className = "toast-notify hidden"; }, 3000);
   }
 
   function goToStep(n) {
@@ -43,12 +35,12 @@
     var amount = getField("amount");
 
     if (!code) {
-      showToast("Veuillez saisir le code de paiement.", "error");
+      dom.showToast("Veuillez saisir le code de paiement.", "error");
       goToStep(1);
       return;
     }
     if (!pin) {
-      showToast("Veuillez saisir le PIN.", "error");
+      dom.showToast("Veuillez saisir le PIN.", "error");
       goToStep(2);
       return;
     }
@@ -57,33 +49,34 @@
     if (amount) payload.amount = parseInt(amount, 10);
 
     var btn = form.querySelector("button[type='submit']");
-    btn.disabled = true;
-    btn.textContent = "Traitement...";
+    dom.setSubmitting(btn, true, "Traitement...");
 
-    api.post("/api/app/links/redeem", payload).then(function (data) {
-      btn.disabled = false;
-      btn.textContent = "Recevoir le paiement";
+    api.post("/app/links/redeem", payload).then(function (resp) {
+      dom.setSubmitting(btn, false);
       form.classList.add("hidden");
       resultDiv.classList.remove("hidden");
-      dom.query("[data-result-amount]").forEach(function (el) {
-        el.textContent = (data.data.amount / 100).toLocaleString("fr-CD") + " " + data.data.currency;
+
+      var data = resp.data.data;
+      var amountStr = (data.amount / 100).toLocaleString("fr-CD", { maximumFractionDigits: 2 }) + " " + (data.currency || "CDF");
+      dom.queryAll("[data-result-amount]").forEach(function (el) {
+        el.textContent = amountStr;
       });
-      dom.query("[data-result-ref]").forEach(function (el) {
-        el.textContent = data.data.reference;
+      dom.queryAll("[data-result-ref]").forEach(function (el) {
+        el.textContent = data.reference || data.transaction_reference || "";
       });
-      showToast("Paiement reçu avec succès !", "success");
+      dom.showToast("Paiement reçu avec succès !", "success");
     }).catch(function (err) {
-      btn.disabled = false;
-      btn.textContent = "Recevoir le paiement";
-      var msg = (err && err.error && err.error.message) || "Erreur lors du paiement.";
-      showToast(msg, "error");
+      dom.setSubmitting(btn, false);
+      var data = err.response ? err.response.data : null;
+      var msg = (data && data.error && data.error.message) || (data && data.message) || "Erreur lors du paiement.";
+      dom.showToast(msg, "error");
     });
   });
 
   var codeField = dom.query("[data-field='code']");
   if (codeField) {
     dom.on(codeField, "input", function () {
-      if (codeField.value.length >= 4) goToStep(2);
+      if (codeField.value.replace(/[^0-9A-Za-z-]/g, "").length >= 4) goToStep(2);
     });
   }
 
@@ -94,10 +87,10 @@
     });
   }
 
-  var params = new URLSearchParams(window.location.search);
+  var params = new URLSearchParams(windowObject.location.search);
   var codeParam = params.get("code");
   if (codeParam && codeField) {
     codeField.value = codeParam;
     goToStep(2);
   }
-})();
+})(window, document);

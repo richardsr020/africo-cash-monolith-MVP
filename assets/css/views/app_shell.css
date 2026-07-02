@@ -19,18 +19,26 @@
   gap: 1rem;
   /* Suppression de la bordure */
   border-bottom: none;
-  /* Fond semi-transparent flou */
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: transparent;
   transition: var(--transition-sidebar);
 }
 
-/* Support pour le mode sombre */
 [data-theme="dark"] .app-topbar {
+  background: transparent;
+}
+
+.app-topbar.scrolled {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .app-topbar.scrolled {
   background: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Bouton toggle sidebar */
@@ -132,20 +140,14 @@
   padding: 1rem;
   /* Suppression de la bordure */
   border-right: none;
-  /* Fond semi-transparent flou */
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: transparent;
   transition: var(--transition-sidebar);
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* Mode sombre pour sidebar */
 [data-theme="dark"] .app-sidebar {
-  background: rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: transparent;
 }
 
 /* Sidebar masquée (collapsed) */

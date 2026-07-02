@@ -44,6 +44,19 @@
     }
   }
 
+  // ========== TOPBAR SCROLL GLASS ==========
+  function initTopbarScroll() {
+    const topbar = dom.query('.app-topbar');
+    if (!topbar) return;
+
+    function checkScroll() {
+      topbar.classList.toggle('scrolled', windowObject.scrollY > 10);
+    }
+
+    checkScroll();
+    windowObject.addEventListener('scroll', checkScroll, { passive: true });
+  }
+
   // ========== GESTION DE LA SIDEBAR ==========
   function initSidebar() {
     const sidebar = dom.query('.app-sidebar');
@@ -230,6 +243,7 @@
     syncSession();
     
     // Initialiser tous les composants UI
+    initTopbarScroll();
     initSidebar();
     initTheme();
     initResponsiveButtons();
