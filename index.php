@@ -188,7 +188,8 @@ function handle_api_request(string $path): void
                 $accounts = (new Account($db))->listByUser((int) $user['id']);
                 $lines = ["SOLDE AFRICO CASH"];
                 foreach ($accounts as $acc) {
-                    $lines[] = "{$acc['currency']}: {$acc['formatted_balance']}";
+                    $label = $acc['wallet_type'] === 'savings' ? 'Épargne' : 'Courant';
+                    $lines[] = "{$acc['currency']} {$label}: {$acc['formatted_balance']}";
                 }
                 $lines[] = "0. Menu";
                 json_response(['success' => true, 'state' => 'menu', 'screen' => implode("\n", $lines)]);
@@ -280,7 +281,7 @@ function handle_api_request(string $path): void
                 json_response(['success' => true, 'state' => 'menu', 'screen' => "Destinataire introuvable.\n{$menuScreen}"]);
             }
 
-            $recipientAccountStmt = $db->prepare('SELECT 1 FROM accounts WHERE user_id = :uid AND currency = :cur LIMIT 1');
+            $recipientAccountStmt = $db->prepare('SELECT 1 FROM accounts WHERE user_id = :uid AND currency = :cur AND wallet_type = \'current\' LIMIT 1');
             $recipientAccountStmt->execute([':uid' => $recipientUser['id'], ':currency' => 'CDF']);
             if (!$recipientAccountStmt->fetch()) {
                 json_response(['success' => true, 'state' => 'menu', 'screen' => "Le destinataire n'a pas de compte CDF.\n{$menuScreen}"]);

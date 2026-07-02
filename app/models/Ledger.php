@@ -60,7 +60,7 @@ final class Ledger
         $statement = $this->db->prepare(
             "SELECT currency, "
             . "SUM(CASE WHEN type IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN amount ELSE 0 END) AS income, "
-            . "SUM(CASE WHEN type NOT IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN total_amount ELSE 0 END) AS outcome, "
+            . "SUM(CASE WHEN type NOT IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money', 'wallet_transfer', 'early_unlock') THEN total_amount ELSE 0 END) AS outcome, "
             . "COUNT(*) AS total_count "
             . "FROM transactions WHERE user_id = :user_id GROUP BY currency"
         );

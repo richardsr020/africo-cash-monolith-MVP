@@ -14,35 +14,99 @@
 </header>
 
 <!-- ═══════════════════════════════════════════
-     BALANCE CARDS
+     WALLET TABS
 ═══════════════════════════════════════════ -->
-<section class="wallet-balances" data-wallet-balances aria-label="Soldes par devise">
-  <div class="wallet-balance-skeleton">
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
+<section class="wallet-tabs" role="tablist">
+  <button class="wallet-tab wallet-tab--active" data-wallet-tab="current" role="tab" aria-selected="true">
+    <i class="fa-solid fa-wallet"></i> Dépenses courantes
+  </button>
+  <button class="wallet-tab" data-wallet-tab="savings" role="tab" aria-selected="false">
+    <i class="fa-solid fa-piggy-bank"></i> Épargne
+    <span class="wallet-tab__badge" data-savings-features-badge style="display:none">2</span>
+  </button>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     CURRENT WALLET PANEL
+═══════════════════════════════════════════ -->
+<section class="wallet-panel wallet-panel--active" data-wallet-panel="current" aria-label="Portefeuille dépenses courantes">
+  <div class="wallet-balances" data-wallet-balances="current">
+    <div class="wallet-balance-skeleton">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
+  <div class="wallet-actions">
+    <button class="wallet-action" data-action="deposit">
+      <span class="wallet-action__icon wallet-action__icon--deposit"><i class="fa-solid fa-circle-down"></i></span>
+      <span class="wallet-action__label">Dépôt</span>
+    </button>
+    <button class="wallet-action" data-action="withdraw">
+      <span class="wallet-action__icon wallet-action__icon--withdraw"><i class="fa-solid fa-circle-up"></i></span>
+      <span class="wallet-action__label">Retrait</span>
+    </button>
+    <button class="wallet-action" data-action="convert">
+      <span class="wallet-action__icon wallet-action__icon--convert"><i class="fa-solid fa-arrows-rotate"></i></span>
+      <span class="wallet-action__label">Convertir</span>
+    </button>
+    <button class="wallet-action" data-action="to-savings">
+      <span class="wallet-action__icon wallet-action__icon--savings"><i class="fa-solid fa-piggy-bank"></i></span>
+      <span class="wallet-action__label">Épargner</span>
+    </button>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════
-     QUICK ACTIONS
+     SAVINGS WALLET PANEL
 ═══════════════════════════════════════════ -->
-<section class="wallet-actions" aria-label="Actions rapides">
-  <button class="wallet-action" data-action="deposit">
-    <span class="wallet-action__icon wallet-action__icon--deposit"><i class="fa-solid fa-circle-down"></i></span>
-    <span class="wallet-action__label">Dépôt</span>
-  </button>
-  <button class="wallet-action" data-action="withdraw">
-    <span class="wallet-action__icon wallet-action__icon--withdraw"><i class="fa-solid fa-circle-up"></i></span>
-    <span class="wallet-action__label">Retrait</span>
-  </button>
-  <button class="wallet-action" data-action="convert">
-    <span class="wallet-action__icon wallet-action__icon--convert"><i class="fa-solid fa-arrows-rotate"></i></span>
-    <span class="wallet-action__label">Convertir</span>
-  </button>
-  <button class="wallet-action" data-action="stats">
-    <span class="wallet-action__icon wallet-action__icon--stats"><i class="fa-solid fa-chart-simple"></i></span>
-    <span class="wallet-action__label">Statistiques</span>
-  </button>
+<section class="wallet-panel" data-wallet-panel="savings" aria-label="Portefeuille épargne" style="display:none">
+  <div class="wallet-balances" data-wallet-balances="savings">
+    <div class="wallet-balance-skeleton">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
+  <div class="wallet-actions">
+    <button class="wallet-action" data-action="from-savings">
+      <span class="wallet-action__icon wallet-action__icon--withdraw"><i class="fa-solid fa-circle-up"></i></span>
+      <span class="wallet-action__label">Retirer</span>
+    </button>
+    <button class="wallet-action" data-action="to-savings-quick">
+      <span class="wallet-action__icon wallet-action__icon--deposit"><i class="fa-solid fa-circle-down"></i></span>
+      <span class="wallet-action__label">Alimenter</span>
+    </button>
+  </div>
+
+  <!-- === SAVINGS CONFIG === -->
+  <article class="panel savings-config" data-savings-config-panel>
+    <div class="panel__head">
+      <h2><i class="fa-solid fa-gear"></i> Configuration épargne</h2>
+    </div>
+    <div class="savings-config__body" data-savings-config-body>
+      <div class="skeleton-card" style="height:120px"></div>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     CONVERSION WIDGET
+═══════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     PAYMENT LINKS WIDGET
+═══════════════════════════════════════════ -->
+<section class="wallet-links" data-links-widget>
+  <article class="panel">
+    <div class="panel__head">
+      <h2><i class="fa-solid fa-qrcode"></i> Liens de paiement</h2>
+      <a href="<?= route_path('payment_links') ?>" class="btn btn-sm btn-soft">Gérer</a>
+    </div>
+    <div class="wallet-links__body" data-links-body>
+      <p class="text-muted">Créez un lien pour recevoir un paiement sans être connecté.</p>
+      <a href="<?= route_path('payment_links') ?>?action=create" class="btn btn-primary btn-full">
+        <i class="fa-solid fa-plus"></i> Nouveau lien
+      </a>
+    </div>
+  </article>
 </section>
 
 <!-- ═══════════════════════════════════════════
@@ -87,6 +151,75 @@
     </div>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════
+     TRANSFER MODALS
+═══════════════════════════════════════════ -->
+<div class="modal-overlay" data-modal="to-savings" style="display:none">
+  <div class="modal">
+    <div class="modal__head">
+      <h3><i class="fa-solid fa-piggy-bank"></i> Alimenter l'épargne</h3>
+      <button class="modal__close" data-modal-close>&times;</button>
+    </div>
+    <div class="modal__body">
+      <p>Transférer des fonds de votre compte courant vers votre épargne.</p>
+      <div class="form-group">
+        <label>Devise</label>
+        <select data-transfer-currency class="form-control">
+          <option value="CDF">CDF</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Montant</label>
+        <input type="number" data-transfer-amount class="form-control" min="1" placeholder="Montant à épargner">
+      </div>
+      <div class="form-group">
+        <label>PIN de sécurité</label>
+        <input type="password" data-transfer-pin class="form-control" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="****">
+      </div>
+      <p class="form-help">Opération sans frais.</p>
+      <div class="form-error" data-transfer-error style="display:none"></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn-soft" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-transfer-confirm>Confirmer le transfert</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" data-modal="from-savings" style="display:none">
+  <div class="modal">
+    <div class="modal__head">
+      <h3><i class="fa-solid fa-circle-up"></i> Retirer de l'épargne</h3>
+      <button class="modal__close" data-modal-close>&times;</button>
+    </div>
+    <div class="modal__body">
+      <p>Transférer des fonds de votre épargne vers votre compte courant.</p>
+      <div data-from-savings-status></div>
+      <div class="form-group">
+        <label>Devise</label>
+        <select data-transfer-currency class="form-control">
+          <option value="CDF">CDF</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Montant</label>
+        <input type="number" data-transfer-amount class="form-control" min="1" placeholder="Montant à retirer">
+      </div>
+      <div class="form-group">
+        <label>PIN de sécurité</label>
+        <input type="password" data-transfer-pin class="form-control" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="****">
+      </div>
+      <div class="form-error" data-transfer-error style="display:none"></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn-soft" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-transfer-confirm>Confirmer le retrait</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════
      RECENT MOVEMENTS

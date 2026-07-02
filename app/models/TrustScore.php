@@ -177,9 +177,15 @@ final class TrustScore
 
     private function computeTrustScore(int $txCount, int $volumeCdf, int $volumeUsd, float $ratingAvg, int $ratingCount): int
     {
-        $volumeScore = min(300, (int) (($volumeCdf / 5000000) * 100) + (int) (($volumeUsd / 10000) * 100));
+        $volumeScore = min(
+            300,
+            (int) bcdiv(bcmul((string) $volumeCdf, '100', 0), '5000000', 0)
+            + (int) bcdiv(bcmul((string) $volumeUsd, '100', 0), '10000', 0)
+        );
         $txScore = min(250, $txCount * 10);
-        $ratingScore = $ratingCount > 0 ? (int) (($ratingAvg / 5) * 200) : 0;
+        $ratingScore = $ratingCount > 0
+            ? (int) bcdiv(bcmul(sprintf('%.10f', $ratingAvg), '200', 2), '5', 0)
+            : 0;
         $participationScore = min(250, $ratingCount * 15);
 
         return min(1000, $volumeScore + $txScore + $ratingScore + $participationScore);

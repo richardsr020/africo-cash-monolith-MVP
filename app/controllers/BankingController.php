@@ -75,7 +75,7 @@ final class BankingController extends BaseController
         }
 
         $amount = $amount * 100; // Convert to centimes
-        $fees = (int) round($amount * 0.015);
+        $fees = (int) bcdiv(bcmul((string) $amount, '15', 0), '1000', 0);
         $totalAmount = $amount + $fees;
         $userId = (int) $this->user['id'];
 
@@ -153,7 +153,7 @@ final class BankingController extends BaseController
         }
 
         $amount = $amount * 100; // Convert to centimes
-        $fees = (int) round($amount * 0.025);
+        $fees = (int) bcdiv(bcmul((string) $amount, '25', 0), '1000', 0);
         $totalAmount = $amount + $fees;
         $userId = (int) $this->user['id'];
 

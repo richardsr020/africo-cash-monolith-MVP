@@ -68,12 +68,17 @@ abstract class BaseController
 
     protected function chartFromAccounts(array $accounts, array $totals): array
     {
-        $chart = [];
+        $aggregated = [];
         foreach ($accounts as $account) {
             $currency = $account['currency'];
             $balance = (int) $account['balance'];
+            $aggregated[$currency] = ($aggregated[$currency] ?? 0) + $balance;
+        }
+
+        $chart = [];
+        foreach ($aggregated as $currency => $totalBalance) {
             $currencyTotals = $totals[$currency] ?? ['income' => 0, 'outcome' => 0];
-            $seed = max(20, (int) (($currencyTotals['income'] + $currencyTotals['outcome'] + $balance) / 1000));
+            $seed = max(20, (int) (($currencyTotals['income'] + $currencyTotals['outcome'] + $totalBalance) / 1000));
             $chart[$currency] = array_map(static fn (int $index): int => max(18, min(96, ($seed + ($index * 9)) % 100)), range(0, 6));
         }
 
