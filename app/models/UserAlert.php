@@ -26,7 +26,7 @@ final class UserAlert
         return $stmt->rowCount() > 0;
     }
 
-    public function create(int $userId, string $title, string $body = null, string $alertType = 'info'): array
+    public function create(int $userId, string $title, ?string $body = null, string $alertType = 'info'): array
     {
         $stmt = $this->db->prepare(
             'INSERT INTO user_alerts (user_id, title, body, alert_type) VALUES (:uid, :title, :body, :type)'
