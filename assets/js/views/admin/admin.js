@@ -1,6 +1,6 @@
 (function () {
-  var dom = window.dom;
-  var api = window.apiClient;
+  var dom = window.AfricoDom || window.dom;
+  var api = window.AfricoApi || window.apiClient;
 
   var currentUserPage = 1;
   var currentTxPage = 1;
@@ -44,7 +44,7 @@
 
   // ── OVERVIEW ──
   function loadOverview() {
-    api.get("/api/app/admin/overview").then(function (resp) {
+    api.get("/app/admin/overview").then(function (resp) {
       var d = resp.data.data;
       q("[data-admin-users]").textContent = (d.users || 0).toLocaleString("fr-FR");
       q("[data-admin-agents]").textContent = (d.agents || 0).toLocaleString("fr-FR");
@@ -59,7 +59,7 @@
   }
 
   function loadVolumeChart() {
-    api.get("/api/app/admin/volume-chart").then(function (resp) {
+    api.get("/app/admin/volume-chart").then(function (resp) {
       var data = resp.data.data;
       var container = q("[data-volume-chart]");
       var days = Object.keys(data).sort();
@@ -103,7 +103,7 @@
   function loadUsers(page) {
     if (page !== undefined) currentUserPage = page;
     var search = currentUserSearch;
-    var url = "/api/app/admin/users?page=" + currentUserPage + "&per_page=20";
+    var url = "/app/admin/users?page=" + currentUserPage + "&per_page=20";
     if (search) url += "&search=" + encodeURIComponent(search);
     api.get(url).then(function (resp) {
       var d = resp.data.data;
@@ -143,7 +143,7 @@
         dom.on(sel, "change", function () {
           var uid = parseInt(sel.getAttribute("data-user-id"), 10);
           var role = sel.value;
-          api.post("/api/app/admin/users/" + uid + "/role", { role: role }).then(function () {
+          api.post("/app/admin/users/" + uid + "/role", { role: role }).then(function () {
             showToast("Rôle mis à jour.", "success");
           }).catch(function () {
             showToast("Erreur mise à jour rôle.", "error");
@@ -154,7 +154,7 @@
       qa("[data-toggle-user]").forEach(function (btn) {
         dom.on(btn, "click", function () {
           var uid = parseInt(btn.getAttribute("data-toggle-user"), 10);
-          api.post("/api/app/admin/users/" + uid + "/toggle-status").then(function () {
+          api.post("/app/admin/users/" + uid + "/toggle-status").then(function () {
             showToast("Statut mis à jour.", "success");
             loadUsers(currentUserPage);
           }).catch(function () {
@@ -182,7 +182,7 @@
 
   // ── AGENTS ──
   function loadAgents() {
-    api.get("/api/app/admin/agents").then(function (resp) {
+    api.get("/app/admin/agents").then(function (resp) {
       var agents = resp.data.data;
       var tbody = q("[data-agent-rows]");
       if (!agents || !agents.length) {
@@ -208,7 +208,7 @@
           var input = q("[data-agent-id='" + aid + "']");
           var rate = parseInt(input.value, 10);
           if (isNaN(rate)) { showToast("Taux invalide.", "error"); return; }
-          api.post("/api/app/admin/agents/" + aid + "/commission", { commission_rate: rate }).then(function () {
+          api.post("/app/admin/agents/" + aid + "/commission", { commission_rate: rate }).then(function () {
             showToast("Commission mise à jour.", "success");
           }).catch(function () {
             showToast("Erreur mise à jour.", "error");
@@ -223,7 +223,7 @@
   // ── TRANSACTIONS ──
   function loadTransactions(page) {
     if (page !== undefined) currentTxPage = page;
-    api.get("/api/app/admin/transactions?page=" + currentTxPage).then(function (resp) {
+    api.get("/app/admin/transactions?page=" + currentTxPage).then(function (resp) {
       var d = resp.data.data;
       var tbody = q("[data-transaction-rows]");
       if (!d.transactions || !d.transactions.length) {
@@ -253,7 +253,7 @@
 
   // ── EXCHANGE RATES ──
   function loadRates() {
-    api.get("/api/app/admin/exchange-rates").then(function (resp) {
+    api.get("/app/admin/exchange-rates").then(function (resp) {
       var rates = resp.data.data;
       var tbody = q("[data-rate-rows]");
       if (!rates || !rates.length) {
@@ -275,7 +275,7 @@
           var input = q("[data-rate-id='" + rid + "']");
           var rate = parseInt(input.value, 10);
           if (isNaN(rate) || rate <= 0) { showToast("Taux invalide.", "error"); return; }
-          api.post("/api/app/admin/exchange-rates/" + rid, { rate: rate }).then(function () {
+          api.post("/app/admin/exchange-rates/" + rid, { rate: rate }).then(function () {
             showToast("Taux mis à jour.", "success");
           }).catch(function () {
             showToast("Erreur mise à jour.", "error");
@@ -289,7 +289,7 @@
 
   // ── SETTINGS ──
   function loadSettings() {
-    api.get("/api/app/admin/settings").then(function (resp) {
+    api.get("/app/admin/settings").then(function (resp) {
       var settings = resp.data.data;
       var container = q("[data-settings-container]");
       if (!settings || !settings.length) {
@@ -334,7 +334,7 @@
         dom.on(cb, "change", function () {
           var key = cb.getAttribute("data-toggle-setting");
           var val = cb.checked ? "1" : "0";
-          api.post("/api/app/admin/settings/" + key, { value: val }).then(function () {
+          api.post("/app/admin/settings/" + key, { value: val }).then(function () {
             showToast(key + " mis à jour.", "success");
           }).catch(function () {
             showToast("Erreur.", "error");
@@ -347,7 +347,7 @@
           var key = btn.getAttribute("data-save-setting");
           var input = q("[data-setting-key='" + key + "']");
           var val = input.value;
-          api.post("/api/app/admin/settings/" + key, { value: val }).then(function () {
+          api.post("/app/admin/settings/" + key, { value: val }).then(function () {
             showToast(key + " sauvegardé.", "success");
           }).catch(function () {
             showToast("Erreur.", "error");
@@ -361,7 +361,7 @@
 
   // ── BADGES ──
   function loadBadges() {
-    api.get("/api/app/admin/overview").then(function (resp) {
+    api.get("/app/admin/overview").then(function (resp) {
       var data = resp.data.data;
       var tbody = q("[data-badge-rows]");
       if (!data.badgeData || !data.badgeData.length) {
@@ -391,7 +391,7 @@
 
   // ── AUDIT LOGS ──
   function loadLogs() {
-    api.get("/api/app/admin/audit-logs").then(function (resp) {
+    api.get("/app/admin/audit-logs").then(function (resp) {
       var logs = resp.data.data;
       var tbody = q("[data-log-rows]");
       if (!logs || !logs.length) {

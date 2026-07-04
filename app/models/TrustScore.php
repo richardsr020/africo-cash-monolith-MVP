@@ -123,7 +123,12 @@ final class TrustScore
     {
         $sql = 'SELECT u.id, u.full_name, u.afric_number, u.email, '
             . 'COALESCE(ts.badge, "none") AS badge, '
-            . 'COALESCE(ts.trust_score, 0) AS trust_score '
+            . 'COALESCE(ts.trust_score, 0) AS trust_score, '
+            . 'COALESCE(ts.volume_6m_cdf, 0) AS volume_6m_cdf, '
+            . 'COALESCE(ts.volume_6m_usd, 0) AS volume_6m_usd, '
+            . 'COALESCE(ts.tx_count_6m, 0) AS tx_count_6m, '
+            . 'COALESCE(ts.rating_avg, 0) AS rating_avg, '
+            . 'COALESCE(ts.rating_count, 0) AS rating_count '
             . 'FROM users u '
             . 'LEFT JOIN user_trust_scores ts ON ts.user_id = u.id '
             . 'WHERE u.is_active = 1';
@@ -145,6 +150,11 @@ final class TrustScore
                 'email' => $row['email'],
                 'badge' => $row['badge'],
                 'trust_score' => (int) ($row['trust_score'] ?? 0),
+                'volume_6m_cdf' => (int) ($row['volume_6m_cdf'] ?? 0),
+                'volume_6m_usd' => (int) ($row['volume_6m_usd'] ?? 0),
+                'tx_count_6m' => (int) ($row['tx_count_6m'] ?? 0),
+                'rating_avg' => (float) ($row['rating_avg'] ?? 0),
+                'rating_count' => (int) ($row['rating_count'] ?? 0),
             ];
         }, $stmt->fetchAll());
     }

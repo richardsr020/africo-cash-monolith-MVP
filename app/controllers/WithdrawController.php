@@ -2,17 +2,22 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../models/AdminSettings.php';
+
 final class WithdrawController extends BaseController
 {
     private Account $accounts;
 
     private Ledger $ledger;
 
+    private AdminSettings $adminSettings;
+
     public function __construct(PDO $db, array $user)
     {
         parent::__construct($db, $user);
         $this->accounts = new Account($db);
         $this->ledger = new Ledger($db);
+        $this->adminSettings = new AdminSettings($db);
     }
 
     public function handle(string $path): bool
@@ -75,7 +80,7 @@ final class WithdrawController extends BaseController
         $amount = $amount * 100; // Convert to centimes
         $userId = (int) $this->user['id'];
 
-        $fees = 0;
+        $fees = $this->adminSettings->calculateFee('atm_withdraw', $amount);
         $totalAmount = $amount + $fees;
         $atmCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expiresAt = date('Y-m-d H:i:s', time() + 600);
@@ -170,8 +175,14 @@ final class WithdrawController extends BaseController
             json_response(['success' => false, 'error' => ['code' => 'insufficient_balance', 'message' => 'Solde insuffisant.']], 422);
         }
 
-        $fees = 0;
+        $fees = $this->adminSettings->calculateFee('agent_withdraw', $amount);
         $totalAmount = $amount + $fees;
+
+        try {
+            $this->accounts->ensureBalance($userId, $currency, $totalAmount);
+        } catch (RuntimeException $e) {
+            json_response(['success' => false, 'error' => ['code' => 'insufficient_balance', 'message' => 'Solde insuffisant (frais inclus).']], 422);
+        }
 
         $this->db->beginTransaction();
 
@@ -375,7 +386,7 @@ final class WithdrawController extends BaseController
 
         $amount = (int) $transaction['amount'];
         $currency = strtoupper((string) $transaction['currency']);
-        $fees = 0;
+        $fees = $this->adminSettings->calculateFee('atm_withdraw', $amount);
         $totalAmount = $amount + $fees;
 
         try {

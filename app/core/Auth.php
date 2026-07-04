@@ -16,6 +16,8 @@ require_once dirname(__DIR__) . '/controllers/BillController.php';
 require_once dirname(__DIR__) . '/controllers/BankingController.php';
 require_once dirname(__DIR__) . '/controllers/WithdrawController.php';
 require_once dirname(__DIR__) . '/controllers/TransactionController.php';
+require_once dirname(__DIR__) . '/models/SavingsGoal.php';
+require_once dirname(__DIR__) . '/models/UserAlert.php';
 
 function handle_auth_api_request(PDO $db, string $path): bool
 {

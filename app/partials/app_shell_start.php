@@ -32,7 +32,11 @@ $appRoutes = array_filter(
 <div class="app-layout">
   <aside class="app-sidebar" aria-label="Navigation applicative">
     <nav class="app-nav" aria-label="Menu principal">
-      <?php foreach ($appRoutes as $routeKey => $route): ?>
+      <?php
+      $currentUserRole = (string) ($currentUser['role'] ?? 'customer');
+      foreach ($appRoutes as $routeKey => $route):
+        if ($routeKey === 'admin' && $currentUserRole !== 'admin') continue;
+      ?>
         <a href="<?= route_path((string) $routeKey) ?>" 
            class="<?= ($pageKey ?? '') === $routeKey ? 'is-active' : '' ?>"
            <?= ($pageKey ?? '') === $routeKey ? 'aria-current="page"' : '' ?>>

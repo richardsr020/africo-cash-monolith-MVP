@@ -6,12 +6,13 @@ session_start();
 require_once __DIR__ . '/app/core/Database.php';
 require_once __DIR__ . '/app/core/MigrationRunner.php';
 require_once __DIR__ . '/app/core/Auth.php';
+require_once __DIR__ . '/app/models/AdminSettings.php';
 
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' https://nest.alwaysdata.net http://localhost:8080 http://127.0.0.1:8080; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -287,11 +288,15 @@ function handle_api_request(string $path): void
                 json_response(['success' => true, 'state' => 'menu', 'screen' => "Le destinataire n'a pas de compte CDF.\n{$menuScreen}"]);
             }
 
+            $adminSettings = new AdminSettings($db);
+            $fees = $adminSettings->calculateFee('transfer', $amount);
+            $totalAmount = $amount + $fees;
+
             $accounts = new Account($db);
             try {
-                $accounts->ensureBalance((int) $user['id'], 'CDF', $amount);
+                $accounts->ensureBalance((int) $user['id'], 'CDF', $totalAmount);
             } catch (RuntimeException $e) {
-                json_response(['success' => true, 'state' => 'menu', 'screen' => "Solde insuffisant.\n{$menuScreen}"]);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Solde insuffisant (frais inclus).\n{$menuScreen}"]);
             }
 
             $db->beginTransaction();
@@ -300,7 +305,7 @@ function handle_api_request(string $path): void
 
                 $txnStmt = $db->prepare(
                     'INSERT INTO transactions (idempotency_key, transaction_reference, user_id, type, amount, currency, fees, total_amount, status, recipient_type, recipient_name, recipient_account, metadata, created_at, completed_at) '
-                    . 'VALUES (:ik, :ref, :uid, :type, :amount, :cur, 0, :amount, :status, :rtype, :rname, :raccount, :meta, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+                    . 'VALUES (:ik, :ref, :uid, :type, :amount, :cur, :fees, :total, :status, :rtype, :rname, :raccount, :meta, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
                 );
                 $txnStmt->execute([
                     ':ik' => bin2hex(random_bytes(16)),
@@ -309,6 +314,8 @@ function handle_api_request(string $path): void
                     ':type' => 'send',
                     ':amount' => $amount,
                     ':cur' => 'CDF',
+                    ':fees' => $fees,
+                    ':total' => $totalAmount,
                     ':status' => 'completed',
                     ':rtype' => 'user',
                     ':rname' => $recipientUser['full_name'],
@@ -322,6 +329,8 @@ function handle_api_request(string $path): void
                     ':type' => 'deposit',
                     ':amount' => $amount,
                     ':cur' => 'CDF',
+                    ':fees' => 0,
+                    ':total' => $amount,
                     ':status' => 'completed',
                     ':rtype' => 'user',
                     ':rname' => $user['full_name'],
@@ -329,11 +338,11 @@ function handle_api_request(string $path): void
                     ':meta' => json_encode(['source' => 'ussd', 'parent_reference' => $reference]),
                 ]);
 
-                $accounts->move((int) $user['id'], 'CDF', -$amount);
+                $accounts->move((int) $user['id'], 'CDF', -$totalAmount);
                 $accounts->move((int) $recipientUser['id'], 'CDF', $amount);
                 $db->commit();
 
-                json_response(['success' => true, 'state' => 'menu', 'screen' => "Transfert réussi!\nRéf: {$reference}\n" . number_format($amount / 100, 0, ',', ' ') . " CDF\nvers {$recipientUser['full_name']}\n{$menuScreen}"]);
+                json_response(['success' => true, 'state' => 'menu', 'screen' => "Transfert réussi!\nRéf: {$reference}\n" . number_format($amount / 100, 0, ',', ' ') . " CDF\nFrais: " . number_format($fees / 100, 0, ',', ' ') . " CDF\nvers {$recipientUser['full_name']}\n{$menuScreen}"]);
             } catch (Exception $e) {
                 if ($db->inTransaction()) {
                     $db->rollBack();
@@ -407,6 +416,44 @@ function handle_api_request(string $path): void
     json_response(['success' => false, 'message' => 'API introuvable.'], 404);
 }
 
+if (str_starts_with($requestPath, '/uploads/')) {
+    $db = Database::getInstance()->getConnection();
+    $user = get_authenticated_user($db);
+
+    if ($user === null) {
+        http_response_code(401);
+        exit;
+    }
+
+    $filePath = __DIR__ . $requestPath;
+    if (!is_file($filePath)) {
+        http_response_code(404);
+        exit;
+    }
+
+    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    $mimeMap = [
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+        'pdf' => 'application/pdf',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'csv' => 'text/csv',
+        'txt' => 'text/plain',
+    ];
+
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: private, max-age=3600');
+    readfile($filePath);
+    exit;
+}
+
 if (str_starts_with($requestPath, '/api/')) {
     handle_api_request($requestPath);
 }
@@ -451,6 +498,12 @@ if (($currentPage['section'] ?? null) === 'app' || $pageKey === 'onboarding') {
     if ($pageKey === 'onboarding' && (bool) ($currentUser['onboarding_completed'] ?? false)) {
         header('Location: ' . route_path('dashboard'));
         exit;
+    }
+
+    if ($pageKey === 'admin' && ($currentUser['role'] ?? 'customer') !== 'admin') {
+        http_response_code(403);
+        $currentPage = $pages['dashboard'];
+        $pageKey = 'dashboard';
     }
 }
 

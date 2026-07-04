@@ -22,6 +22,14 @@ abstract class BaseController
         }
     }
 
+    protected function requireRole(string $role): void
+    {
+        $userRole = (string) ($this->user['role'] ?? 'customer');
+        if ($userRole !== $role) {
+            json_response(['success' => false, 'error' => ['code' => 'forbidden', 'message' => 'Accès refusé.']], 403);
+        }
+    }
+
     protected function rollbackIfNeeded(): void
     {
         if ($this->db->inTransaction()) {

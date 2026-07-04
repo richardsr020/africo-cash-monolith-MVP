@@ -2,14 +2,19 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../models/AdminSettings.php';
+
 final class BankingController extends BaseController
 {
     private Account $accounts;
+
+    private AdminSettings $adminSettings;
 
     public function __construct(PDO $db, array $user)
     {
         parent::__construct($db, $user);
         $this->accounts = new Account($db);
+        $this->adminSettings = new AdminSettings($db);
     }
 
     public function handle(string $path): bool
@@ -75,7 +80,7 @@ final class BankingController extends BaseController
         }
 
         $amount = $amount * 100; // Convert to centimes
-        $fees = (int) bcdiv(bcmul((string) $amount, '15', 0), '1000', 0);
+        $fees = $this->adminSettings->calculateFee('bank_transfer', $amount);
         $totalAmount = $amount + $fees;
         $userId = (int) $this->user['id'];
 
@@ -153,7 +158,7 @@ final class BankingController extends BaseController
         }
 
         $amount = $amount * 100; // Convert to centimes
-        $fees = (int) bcdiv(bcmul((string) $amount, '25', 0), '1000', 0);
+        $fees = $this->adminSettings->calculateFee('bank_transfer', $amount);
         $totalAmount = $amount + $fees;
         $userId = (int) $this->user['id'];
 

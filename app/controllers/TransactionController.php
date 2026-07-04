@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Transaction.php';
+require_once __DIR__ . '/../models/AdminSettings.php';
 
 class TransactionController {
     private $db;
@@ -9,6 +10,12 @@ class TransactionController {
     public function __construct($db) {
         $this->db = $db;
         $this->transactionModel = new Transaction($db);
+    }
+
+    private function calculateFee(string $type, int $amount): int
+    {
+        $settings = new AdminSettings($this->db);
+        return $settings->calculateFee($type, $amount);
     }
     
     public function index() {
@@ -129,7 +136,7 @@ class TransactionController {
             }
         }
 
-        $fees = 0;
+        $fees = $this->calculateFee('transfer', $amount);
         $totalAmount = $amount + $fees;
         
         $balance = $this->transactionModel->checkBalance($userId, $currency);
@@ -155,7 +162,7 @@ class TransactionController {
                 'type' => Transaction::TYPE_SEND,
                 'amount' => $amount,
                 'currency' => $currency,
-                'fees' => 0,
+                'fees' => $fees,
                 'total_amount' => $totalAmount,
                 'status' => Transaction::STATUS_PENDING,
                 'recipient_name' => $recipientUser['full_name'],

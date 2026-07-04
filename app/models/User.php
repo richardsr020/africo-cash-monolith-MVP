@@ -13,6 +13,8 @@ final class User
      */
     public function createCustomer(array $data): int
     {
+        $role = $this->hasAnyAdmin() ? 'customer' : 'admin';
+
         $statement = $this->db->prepare(
             'INSERT INTO users (afric_number, email, password_hash, full_name, address, profession, notification_phone, country, account_type, role, kyc_status, is_verified, is_active, created_at, updated_at) '
             . 'VALUES (:afric_number, :email, :password_hash, :full_name, :address, :profession, :notification_phone, :country, :account_type, :role, :kyc_status, :is_verified, :is_active, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
@@ -27,7 +29,7 @@ final class User
             ':notification_phone' => $data['notification_phone'],
             ':country' => $data['country'],
             ':account_type' => $data['account_type'],
-            ':role' => 'customer',
+            ':role' => $role,
             ':kyc_status' => 'pending',
             ':is_verified' => 0,
             ':is_active' => 1,
@@ -43,6 +45,13 @@ final class User
             . 'VALUES (:user_id, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
         );
         $statement->execute([':user_id' => $userId]);
+    }
+
+    public function hasAnyAdmin(): bool
+    {
+        $statement = $this->db->query('SELECT 1 FROM users WHERE role = \'admin\' LIMIT 1');
+
+        return $statement->fetchColumn() !== false;
     }
 
     public function generateUniqueAfricoNumber(): string

@@ -22,6 +22,14 @@ final class Database
             throw new RuntimeException('Impossible de créer le répertoire de base de données.');
         }
 
+        if (!file_exists($this->databasePath)) {
+            $touchResult = touch($this->databasePath);
+            if ($touchResult === false) {
+                throw new RuntimeException('Impossible de créer le fichier de base de données.');
+            }
+            chmod($this->databasePath, 0644);
+        }
+
         $this->connection = new PDO('sqlite:' . $this->databasePath, null, null, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

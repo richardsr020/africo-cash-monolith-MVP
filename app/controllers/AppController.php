@@ -6,6 +6,9 @@ require_once __DIR__ . '/../models/TrustScore.php';
 require_once __DIR__ . '/../models/UserRating.php';
 require_once __DIR__ . '/../models/SavingsConfig.php';
 require_once __DIR__ . '/../models/PaymentLink.php';
+require_once __DIR__ . '/../models/SavingsGoal.php';
+require_once __DIR__ . '/../models/UserAlert.php';
+require_once __DIR__ . '/../models/AdminSettings.php';
 
 final class AppController extends BaseController
 {
@@ -23,6 +26,12 @@ final class AppController extends BaseController
 
     private PaymentLink $paymentLinks;
 
+    private SavingsGoal $savingsGoal;
+
+    private UserAlert $userAlert;
+
+    private AdminSettings $adminSettings;
+
     public function __construct(PDO $db, array $user)
     {
         parent::__construct($db, $user);
@@ -33,6 +42,9 @@ final class AppController extends BaseController
         $this->userRating = new UserRating($db);
         $this->savingsConfig = new SavingsConfig($db);
         $this->paymentLinks = new PaymentLink($db);
+        $this->savingsGoal = new SavingsGoal($db);
+        $this->userAlert = new UserAlert($db);
+        $this->adminSettings = new AdminSettings($db);
     }
 
     public function handle(string $path): bool
@@ -199,6 +211,30 @@ final class AppController extends BaseController
             return true;
         }
 
+        if ($route === '/summary/period') {
+            $this->requireMethod($method, 'GET');
+            $this->summaryByPeriod();
+            return true;
+        }
+
+        if ($route === '/savings-goals') {
+            $this->requireMethod($method, 'GET');
+            $this->savingsGoals();
+            return true;
+        }
+
+        if ($route === '/alerts') {
+            $this->requireMethod($method, 'GET');
+            $this->alerts();
+            return true;
+        }
+
+        if (preg_match('#^/alerts/(\d+)/dismiss$#', $route, $m)) {
+            $this->requireMethod($method, 'POST');
+            $this->dismissAlert((int) $m[1]);
+            return true;
+        }
+
         if ($route === '/links') {
             $this->requireMethod($method, 'GET');
             $this->listLinks();
@@ -228,9 +264,10 @@ final class AppController extends BaseController
 
     private function summary(): void
     {
-        $accounts = $this->accounts->listByUser((int) $this->user['id']);
-        $totals = $this->ledger->totals((int) $this->user['id']);
-        $recent = $this->ledger->recentByUser((int) $this->user['id'], 6);
+        $userId = (int) $this->user['id'];
+        $accounts = $this->accounts->listByUser($userId);
+        $totals = $this->ledger->totals($userId);
+        $recent = $this->ledger->recentByUser($userId, 6);
 
         $metrics = [];
         foreach ($accounts as $account) {
@@ -268,13 +305,187 @@ final class AppController extends BaseController
         }
         unset($data);
 
+        $monthly = $this->monthlySummary($userId);
+        $typeBreakdown = $this->transactionTypeBreakdown($userId);
+        $chartData = $this->chartDataByPeriod($userId, '1m');
+
         json_response(['success' => true, 'data' => [
             'user' => $this->user,
             'accounts' => $accounts,
             'metrics' => $metrics,
-            'chart' => $this->chartFromAccounts($accounts, $totals),
+            'chart' => $chartData,
             'recent_transactions' => $recent,
+            'monthly' => $monthly,
+            'type_breakdown' => $typeBreakdown,
         ]]);
+    }
+
+    private function monthlySummary(int $userId): array
+    {
+        $now = new DateTime();
+        $monthStart = $now->format('Y-m-01 00:00:00');
+        $prevMonthStart = $now->modify('first day of last month')->format('Y-m-01 00:00:00');
+        $prevMonthEnd = $now->modify('last day of last month')->format('Y-m-d 23:59:59');
+        $now = new DateTime();
+
+        $incomeTypes = "('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money')";
+        $outcomeTypes = "('send', 'withdraw', 'withdraw_agent', 'withdraw_bank', 'withdraw_atm', 'send_mobile_money', 'bill', 'bill_payment', 'conversion')";
+
+        $thisMonth = $this->db->prepare(
+            "SELECT "
+            . "COALESCE(SUM(CASE WHEN type IN {$incomeTypes} THEN total_amount ELSE 0 END), 0) AS income, "
+            . "COALESCE(SUM(CASE WHEN type IN {$outcomeTypes} THEN total_amount ELSE 0 END), 0) AS expense, "
+            . "COUNT(*) AS tx_count "
+            . "FROM transactions WHERE user_id = :uid AND created_at >= :start"
+        );
+        $thisMonth->execute([':uid' => $userId, ':start' => $monthStart]);
+        $thisRow = $thisMonth->fetch(PDO::FETCH_ASSOC);
+
+        $prevMonth = $this->db->prepare(
+            "SELECT "
+            . "COALESCE(SUM(CASE WHEN type IN {$incomeTypes} THEN total_amount ELSE 0 END), 0) AS income, "
+            . "COALESCE(SUM(CASE WHEN type IN {$outcomeTypes} THEN total_amount ELSE 0 END), 0) AS expense, "
+            . "COUNT(*) AS tx_count "
+            . "FROM transactions WHERE user_id = :uid AND created_at >= :start AND created_at <= :end"
+        );
+        $prevMonth->execute([':uid' => $userId, ':start' => $prevMonthStart, ':end' => $prevMonthEnd]);
+        $prevRow = $prevMonth->fetch(PDO::FETCH_ASSOC);
+
+        $calcDelta = fn(int $current, int $previous): string => $previous > 0
+            ? (round((($current - $previous) / $previous) * 100, 1) . '%')
+            : ($current > 0 ? '+100%' : '0%');
+
+        $calcPct = fn(int $current, int $max): int => $max > 0 ? max(2, min(100, (int) round(($current / $max) * 100))) : 0;
+
+        return [
+            'income' => (int) ($thisRow['income'] ?? 0),
+            'expense' => (int) ($thisRow['expense'] ?? 0),
+            'tx_count' => (int) ($thisRow['tx_count'] ?? 0),
+            'income_delta' => $calcDelta((int) ($thisRow['income'] ?? 0), (int) ($prevRow['income'] ?? 0)),
+            'expense_delta' => $calcDelta((int) ($thisRow['expense'] ?? 0), (int) ($prevRow['expense'] ?? 0)),
+            'tx_delta' => $calcDelta((int) ($thisRow['tx_count'] ?? 0), (int) ($prevRow['tx_count'] ?? 0)),
+            'income_vs' => (int) ($prevRow['income'] ?? 0),
+            'expense_vs' => (int) ($prevRow['expense'] ?? 0),
+            'tx_vs' => (int) ($prevRow['tx_count'] ?? 0),
+            'income_bar' => $calcPct((int) ($thisRow['income'] ?? 0), (int) ($prevRow['income'] ?? 0)),
+            'expense_bar' => $calcPct((int) ($thisRow['expense'] ?? 0), (int) ($prevRow['expense'] ?? 0)),
+            'tx_bar' => $calcPct((int) ($thisRow['tx_count'] ?? 0), (int) ($prevRow['tx_count'] ?? 0)),
+        ];
+    }
+
+    private function transactionTypeBreakdown(int $userId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT type, COUNT(*) AS count, SUM(total_amount) AS total "
+            . "FROM transactions WHERE user_id = :uid AND status = 'completed' "
+            . "GROUP BY type ORDER BY count DESC"
+        );
+        $stmt->execute([':uid' => $userId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $transferCount = 0;
+        $billCount = 0;
+        $cashCount = 0;
+        $totalCount = 0;
+
+        foreach ($rows as $row) {
+            $type = (string) ($row['type'] ?? '');
+            $count = (int) ($row['count'] ?? 0);
+            $totalCount += $count;
+
+            if (in_array($type, ['send', 'send_africo', 'send_mobile_money', 'send_bank', 'conversion', 'deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money'])) {
+                $transferCount += $count;
+            } elseif (in_array($type, ['bill', 'bill_payment'])) {
+                $billCount += $count;
+            } elseif (in_array($type, ['withdraw', 'withdraw_agent', 'withdraw_bank', 'withdraw_atm', 'atm'])) {
+                $cashCount += $count;
+            } else {
+                $transferCount += $count;
+            }
+        }
+
+        $total = max(1, $totalCount);
+        return [
+            'transfer' => round(($transferCount / $total) * 100),
+            'bills' => round(($billCount / $total) * 100),
+            'cash' => round(($cashCount / $total) * 100),
+            'total_count' => $totalCount,
+        ];
+    }
+
+    private function chartDataByPeriod(int $userId, string $period): array
+    {
+        $interval = match ($period) {
+            '7j' => '-7 days',
+            '3m' => '-3 months',
+            default => '-1 month',
+        };
+
+        $stmt = $this->db->prepare(
+            "SELECT DATE(created_at) AS day, currency, "
+            . "SUM(CASE WHEN type IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN total_amount ELSE 0 END) AS income, "
+            . "SUM(CASE WHEN type NOT IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money', 'wallet_transfer', 'early_unlock') THEN total_amount ELSE 0 END) AS outcome "
+            . "FROM transactions "
+            . "WHERE user_id = :uid AND created_at >= datetime('now', :interval) "
+            . "GROUP BY DATE(created_at), currency "
+            . "ORDER BY day ASC"
+        );
+        $stmt->execute([':uid' => $userId, ':interval' => $interval]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $chart = [];
+        foreach ($rows as $row) {
+            $day = (string) $row['day'];
+            $cur = (string) $row['currency'];
+            if (!isset($chart[$day])) $chart[$day] = [];
+            $chart[$day][$cur] = [
+                'income' => (int) $row['income'],
+                'outcome' => (int) $row['outcome'],
+            ];
+        }
+
+        return $chart;
+    }
+
+    private function summaryByPeriod(): void
+    {
+        $this->requireMethod(strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')), 'GET');
+        $userId = (int) $this->user['id'];
+        $period = (string) ($_GET['period'] ?? '1m');
+
+        if (!in_array($period, ['7j', '1m', '3m'], true)) {
+            $period = '1m';
+        }
+
+        $chart = $this->chartDataByPeriod($userId, $period);
+
+        json_response(['success' => true, 'data' => [
+            'chart' => $chart,
+        ]]);
+    }
+
+    private function savingsGoals(): void
+    {
+        $userId = (int) $this->user['id'];
+        $goals = $this->savingsGoal->listByUser($userId);
+
+        json_response(['success' => true, 'data' => $goals]);
+    }
+
+    private function alerts(): void
+    {
+        $userId = (int) $this->user['id'];
+        $alerts = $this->userAlert->activeForUser($userId);
+
+        json_response(['success' => true, 'data' => $alerts]);
+    }
+
+    private function dismissAlert(int $alertId): void
+    {
+        $userId = (int) $this->user['id'];
+        $this->userAlert->dismiss($alertId, $userId);
+
+        json_response(['success' => true, 'data' => ['message' => 'Alerte ignorée.']]);
     }
 
     private function wallet(): void
@@ -417,10 +628,13 @@ final class AppController extends BaseController
             }
         }
 
+        $fees = $this->adminSettings->calculateFee('transfer', $amount);
+        $totalAmount = $amount + $fees;
+
         try {
-            $this->accounts->ensureBalance($userId, $currency, $amount);
+            $this->accounts->ensureBalance($userId, $currency, $totalAmount);
         } catch (RuntimeException $e) {
-            json_response(['success' => false, 'error' => ['code' => 'insufficient_balance', 'message' => 'Solde insuffisant.']], 422);
+            json_response(['success' => false, 'error' => ['code' => 'insufficient_balance', 'message' => 'Solde insuffisant (frais inclus).']], 422);
         }
 
         $this->db->beginTransaction();
@@ -440,8 +654,8 @@ final class AppController extends BaseController
                 ':type' => 'send',
                 ':amount' => $amount,
                 ':currency' => $currency,
-                ':fees' => 0,
-                ':total_amount' => $amount,
+                ':fees' => $fees,
+                ':total_amount' => $totalAmount,
                 ':status' => 'completed',
                 ':recipient_type' => 'user',
                 ':recipient_name' => $recipientUser['full_name'],
@@ -469,7 +683,7 @@ final class AppController extends BaseController
                 ':metadata' => json_encode(['description' => $description, 'parent_reference' => $reference]),
             ]);
 
-            $this->accounts->move($userId, $currency, -$amount);
+            $this->accounts->move($userId, $currency, -$totalAmount);
             $this->accounts->move($recipientId, $currency, $amount);
 
             $this->db->commit();
@@ -481,8 +695,8 @@ final class AppController extends BaseController
                 'reference' => $reference,
                 'amount' => $amount,
                 'currency' => $currency,
-                'fees' => 0,
-                'total_amount' => $amount,
+                'fees' => $fees,
+                'total_amount' => $totalAmount,
                 'recipient_name' => $recipientUser['full_name'],
                 'recipient_account' => $recipient,
                 'description' => $description,
@@ -615,10 +829,13 @@ final class AppController extends BaseController
             json_response(['success' => false, 'error' => ['code' => 'invalid_pin', 'message' => 'PIN incorrect.']], 422);
         }
 
+        $fees = $this->adminSettings->calculateFee('mobile_money', $amount);
+        $totalAmount = $amount + $fees;
+
         try {
-            $this->accounts->ensureBalance($userId, $currency, $amount);
+            $this->accounts->ensureBalance($userId, $currency, $totalAmount);
         } catch (RuntimeException $e) {
-            json_response(['success' => false, 'error' => ['code' => 'insufficient_balance', 'message' => 'Solde insuffisant.']], 422);
+            json_response(['success' => false, 'error' => ['code' => 'insufficient_balance', 'message' => 'Solde insuffisant (frais inclus).']], 422);
         }
 
         $this->db->beginTransaction();
@@ -636,8 +853,8 @@ final class AppController extends BaseController
                 ':type' => 'send_mobile_money',
                 ':amount' => $amount,
                 ':currency' => $currency,
-                ':fees' => 0,
-                ':total' => $amount,
+                ':fees' => $fees,
+                ':total' => $totalAmount,
                 ':status' => 'completed',
                 ':rtype' => 'mobile_money',
                 ':rname' => $provider,
@@ -649,7 +866,7 @@ final class AppController extends BaseController
                 ]),
             ]);
 
-            $this->accounts->move($userId, $currency, -$amount);
+            $this->accounts->move($userId, $currency, -$totalAmount);
             $this->db->commit();
 
             $this->trustScore->recalculate($userId);
@@ -660,8 +877,8 @@ final class AppController extends BaseController
                 'recipient_account' => $phone,
                 'amount' => $amount,
                 'currency' => $currency,
-                'fees' => 0,
-                'total_amount' => $amount,
+                'fees' => $fees,
+                'total_amount' => $totalAmount,
             ]]);
         } catch (Exception $e) {
             $this->rollbackIfNeeded();
@@ -671,6 +888,7 @@ final class AppController extends BaseController
 
     private function adminOverview(): void
     {
+        $this->requireRole('admin');
         $users = (int) $this->db->query('SELECT COUNT(*) FROM users')->fetchColumn();
         $agents = (int) $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'agent'")->fetchColumn();
         $transactions = (int) $this->db->query('SELECT COUNT(*) FROM transactions')->fetchColumn();
@@ -685,6 +903,7 @@ final class AppController extends BaseController
 
     private function adminUsers(): void
     {
+        $this->requireRole('admin');
         $search = (string) ($_GET['search'] ?? '');
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $perPage = 20;
@@ -699,7 +918,9 @@ final class AppController extends BaseController
             $params[':search3'] = "%{$search}%";
         }
 
-        $count = (int) $this->db->prepare("SELECT COUNT(*) FROM users u {$where}")->execute($params)->fetchColumn();
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM users u {$where}");
+        $countStmt->execute($params);
+        $count = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
             "SELECT u.id, u.afric_number, u.full_name, u.email, u.role, u.is_active, u.account_type, "
@@ -722,6 +943,7 @@ final class AppController extends BaseController
 
     private function adminToggleUserStatus(int $userId): void
     {
+        $this->requireRole('admin');
         $stmt = $this->db->prepare('UPDATE users SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END WHERE id = :id');
         $stmt->execute([':id' => $userId]);
 
@@ -738,6 +960,7 @@ final class AppController extends BaseController
 
     private function adminChangeUserRole(int $userId): void
     {
+        $this->requireRole('admin');
         $payload = request_json_body();
         $role = (string) ($payload['role'] ?? '');
 
@@ -757,6 +980,7 @@ final class AppController extends BaseController
 
     private function adminAgents(): void
     {
+        $this->requireRole('admin');
         $stmt = $this->db->prepare(
             "SELECT u.id, u.afric_number, u.full_name, u.email, u.is_active, u.created_at, "
             . "a.agent_code, a.commission_rate, a.phone AS agent_phone "
@@ -771,6 +995,7 @@ final class AppController extends BaseController
 
     private function adminUpdateAgentCommission(int $agentId): void
     {
+        $this->requireRole('admin');
         $payload = request_json_body();
         $rate = (int) ($payload['commission_rate'] ?? 0);
 
@@ -792,6 +1017,7 @@ final class AppController extends BaseController
 
     private function adminTransactions(): void
     {
+        $this->requireRole('admin');
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $perPage = 30;
         $offset = ($page - 1) * $perPage;
@@ -819,6 +1045,7 @@ final class AppController extends BaseController
 
     private function adminExchangeRates(): void
     {
+        $this->requireRole('admin');
         $stmt = $this->db->query(
             "SELECT * FROM exchange_rates ORDER BY effective_date DESC"
         );
@@ -829,6 +1056,7 @@ final class AppController extends BaseController
 
     private function adminUpdateExchangeRate(int $rateId): void
     {
+        $this->requireRole('admin');
         $payload = request_json_body();
         $rate = (int) ($payload['rate'] ?? 0);
 
@@ -848,6 +1076,7 @@ final class AppController extends BaseController
 
     private function adminSettings(): void
     {
+        $this->requireRole('admin');
         $stmt = $this->db->query('SELECT * FROM admin_settings ORDER BY setting_key');
         $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -856,6 +1085,7 @@ final class AppController extends BaseController
 
     private function adminUpdateSetting(string $key): void
     {
+        $this->requireRole('admin');
         $payload = request_json_body();
         $value = (string) ($payload['value'] ?? '');
 
@@ -871,6 +1101,7 @@ final class AppController extends BaseController
 
     private function adminVolumeChart(): void
     {
+        $this->requireRole('admin');
         $stmt = $this->db->query(
             "SELECT DATE(created_at) AS day, currency, "
             . "SUM(CASE WHEN type IN ('deposit', 'deposit_agent', 'deposit_bank', 'deposit_mobile_money') THEN total_amount ELSE 0 END) AS income, "
@@ -898,6 +1129,7 @@ final class AppController extends BaseController
 
     private function adminAuditLogs(): void
     {
+        $this->requireRole('admin');
         $stmt = $this->db->prepare(
             "SELECT l.id, l.action, l.entity_type, l.entity_id, l.old_values, l.new_values, "
             . "l.ip_address, l.created_at, u.full_name AS user_name "
