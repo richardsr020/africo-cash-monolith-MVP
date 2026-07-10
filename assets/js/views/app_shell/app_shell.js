@@ -181,6 +181,43 @@
     windowObject.addEventListener('resize', handleResize);
   }
   
+  // ========== GESTION DU MODE DASHBOARD (simple/advanced) ==========
+  function initDashboardMode() {
+    var sidebar = dom.query('[data-sidebar]');
+    var toggleBtn = dom.query('[data-toggle-sidebar-mode]');
+    var labelEl = dom.query('[data-sidebar-mode-label]');
+    if (!sidebar) return;
+
+    function applyMode(mode) {
+      var isAdvanced = mode === 'advanced';
+      sidebar.classList.toggle('sidebar-mode-simple', !isAdvanced);
+      sidebar.classList.toggle('sidebar-mode-advanced', isAdvanced);
+      if (labelEl) labelEl.textContent = isAdvanced ? 'Mode simple' : 'Mode avancé';
+      if (toggleBtn) {
+        var icon = toggleBtn.querySelector('i');
+        if (icon) icon.className = 'fa-solid ' + (isAdvanced ? 'fa-layer-group' : 'fa-chart-simple');
+      }
+    }
+
+    var saved = 'simple';
+    try { saved = localStorage.getItem('dashboard_advanced') === 'true' ? 'advanced' : 'simple'; } catch (e) {}
+    applyMode(saved);
+
+    if (toggleBtn) {
+      dom.on(toggleBtn, 'click', function () {
+        var isAdvanced = !sidebar.classList.contains('sidebar-mode-simple');
+        var newMode = isAdvanced ? 'simple' : 'advanced';
+        applyMode(newMode);
+        try { localStorage.setItem('dashboard_advanced', newMode === 'advanced'); } catch (e) {}
+        windowObject.dispatchEvent(new CustomEvent('dashboard-mode-change', { detail: { mode: newMode } }));
+      });
+    }
+
+    windowObject.addEventListener('dashboard-mode-change', function (e) {
+      applyMode(e.detail.mode);
+    });
+  }
+
   // ========== GESTION DU THÈME ==========
   function initTheme() {
     const themeToggle = dom.query('[data-theme-toggle]');
@@ -245,6 +282,7 @@
     // Initialiser tous les composants UI
     initTopbarScroll();
     initSidebar();
+    initDashboardMode();
     initTheme();
     initResponsiveButtons();
 

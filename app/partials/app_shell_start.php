@@ -3,6 +3,7 @@ $appRoutes = array_filter(
     $pages,
     static fn (array $route): bool => ($route['section'] ?? null) === 'app'
 );
+$simpleRoutes = ['dashboard', 'wallet', 'profile'];
 ?>
 <header class="app-topbar">
   <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Toggle sidebar">
@@ -30,21 +31,29 @@ $appRoutes = array_filter(
 </header>
 
 <div class="app-layout">
-  <aside class="app-sidebar" aria-label="Navigation applicative">
+  <aside class="app-sidebar" aria-label="Navigation applicative" data-sidebar>
     <nav class="app-nav" aria-label="Menu principal">
       <?php
       $currentUserRole = (string) ($currentUser['role'] ?? 'customer');
       foreach ($appRoutes as $routeKey => $route):
         if ($routeKey === 'admin' && $currentUserRole !== 'admin') continue;
+        $modeGroup = in_array((string) $routeKey, $simpleRoutes, true) ? 'both' : 'advanced';
       ?>
         <a href="<?= route_path((string) $routeKey) ?>" 
            class="<?= ($pageKey ?? '') === $routeKey ? 'is-active' : '' ?>"
-           <?= ($pageKey ?? '') === $routeKey ? 'aria-current="page"' : '' ?>>
+           <?= ($pageKey ?? '') === $routeKey ? 'aria-current="page"' : '' ?>
+           data-mode-group="<?= $modeGroup ?>">
           <i class="fa-solid <?= e((string) ($route['icon'] ?? 'fa-circle')) ?>" aria-hidden="true"></i>
           <span class="nav-label"><?= e((string) $route['label']) ?></span>
         </a>
       <?php endforeach; ?>
     </nav>
+    <div class="sidebar-footer" data-sidebar-footer>
+      <button class="sidebar-mode-toggle" type="button" data-toggle-sidebar-mode>
+        <i class="fa-solid fa-chart-simple"></i>
+        <span class="nav-label" data-sidebar-mode-label>Mode avancé</span>
+      </button>
+    </div>
   </aside>
   <main id="main-content">
 

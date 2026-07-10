@@ -36,24 +36,6 @@
       <div class="skeleton-card"></div>
     </div>
   </div>
-  <div class="wallet-actions">
-    <button class="wallet-action" data-action="deposit">
-      <span class="wallet-action__icon wallet-action__icon--deposit"><i class="fa-solid fa-circle-down"></i></span>
-      <span class="wallet-action__label">Dépôt</span>
-    </button>
-    <button class="wallet-action" data-action="withdraw">
-      <span class="wallet-action__icon wallet-action__icon--withdraw"><i class="fa-solid fa-circle-up"></i></span>
-      <span class="wallet-action__label">Retrait</span>
-    </button>
-    <button class="wallet-action" data-action="convert">
-      <span class="wallet-action__icon wallet-action__icon--convert"><i class="fa-solid fa-arrows-rotate"></i></span>
-      <span class="wallet-action__label">Convertir</span>
-    </button>
-    <button class="wallet-action" data-action="to-savings">
-      <span class="wallet-action__icon wallet-action__icon--savings"><i class="fa-solid fa-piggy-bank"></i></span>
-      <span class="wallet-action__label">Épargner</span>
-    </button>
-  </div>
 </section>
 
 <!-- ═══════════════════════════════════════════
@@ -66,16 +48,7 @@
       <div class="skeleton-card"></div>
     </div>
   </div>
-  <div class="wallet-actions">
-    <button class="wallet-action" data-action="from-savings">
-      <span class="wallet-action__icon wallet-action__icon--withdraw"><i class="fa-solid fa-circle-up"></i></span>
-      <span class="wallet-action__label">Retirer</span>
-    </button>
-    <button class="wallet-action" data-action="to-savings-quick">
-      <span class="wallet-action__icon wallet-action__icon--deposit"><i class="fa-solid fa-circle-down"></i></span>
-      <span class="wallet-action__label">Alimenter</span>
-    </button>
-  </div>
+
 
   <!-- === SAVINGS CONFIG === -->
   <article class="panel savings-config" data-savings-config-panel>

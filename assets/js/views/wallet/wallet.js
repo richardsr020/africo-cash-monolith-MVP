@@ -97,31 +97,48 @@
     if (!container) return;
 
     if (!accounts || !accounts.length) {
-      container.innerHTML = '<div class="wallet-balance-card" style="text-align:center;padding:2rem;color:var(--color-muted)"><span>Aucun compte.</span></div>';
+      container.innerHTML = '<div class="wallet-card" style="text-align:center;padding:2rem;color:var(--color-muted)"><span>Aucun compte.</span></div>';
       return;
     }
 
-    container.innerHTML = accounts.map((account, idx) => {
-      const bars = Array.from({ length: 7 }, (_, i) => {
-        const h = 20 + ((parseInt(account.balance) + i * 7919) % 60);
-        return `<span class="bar--income" style="height:${h}%;animation-delay:${(idx * 7 + i) * 60}ms"></span>`;
-      }).join("");
-
-      return `<div class="wallet-balance-card">
-        <div class="wallet-balance-card__info">
-          <span class="wallet-balance-card__currency">${account.currency}</span>
-          <strong class="wallet-balance-card__amount">${money(account.balance, account.currency)}</strong>
-          <span class="wallet-balance-card__meta">${walletType === "savings" ? "Épargne" : "Courant"}</span>
+    container.innerHTML = accounts.map((account) => {
+      const cur = account.currency;
+      const isSavings = walletType === "savings";
+      return `<div class="wallet-card">
+        <div class="wallet-card__top">
+          <span class="wallet-card__label">
+            <span class="wallet-card__currency">${cur}</span>
+            <span class="wallet-card__type">${isSavings ? "Épargne" : "Courant"}</span>
+          </span>
+          <strong class="wallet-card__amount">${money(account.balance, cur)}</strong>
         </div>
-        <div class="wallet-balance-card__chart">${bars}</div>
-        <div class="wallet-balance-card__actions">
-          ${walletType === "savings"
-            ? `<button type="button" data-action-from-savings="${account.currency}"><i class="fa-solid fa-circle-up"></i> Retirer</button>
-               <button type="button" data-action-to-savings="${account.currency}"><i class="fa-solid fa-circle-down"></i> Alimenter</button>`
-            : `<button type="button" data-quick-deposit="${account.currency}"><i class="fa-solid fa-circle-down"></i> Dépôt</button>
-               <button type="button" data-quick-withdraw="${account.currency}"><i class="fa-solid fa-circle-up"></i> Retrait</button>
-               <button type="button" data-action-to-savings="${account.currency}"><i class="fa-solid fa-piggy-bank"></i> Épargner</button>`
+        <div class="wallet-card__actions">
+          ${isSavings
+            ? `<button class="card-btn card-btn--out" type="button" data-action-from-savings="${cur}" title="Retirer">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                <span>Retirer</span>
+              </button>
+              <button class="card-btn card-btn--in" type="button" data-action-to-savings="${cur}" title="Alimenter">
+                <i class="fa-solid fa-arrow-down-to-bracket"></i>
+                <span>Alimenter</span>
+              </button>`
+            : `<button class="card-btn card-btn--in" type="button" data-quick-deposit="${cur}" title="Dépôt">
+                <i class="fa-solid fa-arrow-down-to-bracket"></i>
+                <span>Dépôt</span>
+              </button>
+              <button class="card-btn card-btn--out" type="button" data-quick-withdraw="${cur}" title="Retrait">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                <span>Retrait</span>
+              </button>
+              <button class="card-btn card-btn--save" type="button" data-action-to-savings="${cur}" title="Épargner">
+                <i class="fa-solid fa-piggy-bank"></i>
+                <span>Épargner</span>
+              </button>`
           }
+          <button class="card-btn card-btn--convert" type="button" data-quick-convert="${cur}" title="Convertir">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Convertir</span>
+          </button>
         </div>
       </div>`;
     }).join("");
@@ -136,6 +153,9 @@
     });
     dom.queryAll("[data-action-from-savings]").forEach((btn) => {
       dom.on(btn, "click", () => openTransferModal("from-savings", btn.dataset.actionFromSavings));
+    });
+    dom.queryAll("[data-quick-convert]").forEach((btn) => {
+      dom.on(btn, "click", () => openConversion(btn.dataset.quickConvert));
     });
   }
 
@@ -361,24 +381,24 @@
     });
   });
 
-  /* ── Quick actions ── */
+  /* ── Conversion ── */
 
-  dom.on(dom.query("[data-action='deposit']"), "click", () => {
-    windowObject.location.assign("/transactions");
-  });
-  dom.on(dom.query("[data-action='withdraw']"), "click", () => {
-    windowObject.location.assign("/transactions");
-  });
-  dom.on(dom.query("[data-action='convert']"), "click", () => {
+  function openConversion(currency) {
     const widget = dom.query("[data-conversion-widget]");
-    widget.style.display = widget.style.display === "none" ? "" : "none";
-  });
+    widget.style.display = "";
+    if (currency) {
+      const from = dom.query("[data-conversion-from]");
+      if (from) from.value = currency;
+      const to = dom.query("[data-conversion-to]");
+      if (to) to.value = currency === "CDF" ? "USD" : "CDF";
+    }
+    dom.query("[data-conversion-amount]").value = "";
+    updateConversion();
+  }
+
   dom.on(dom.query("[data-conversion-close]"), "click", () => {
     dom.query("[data-conversion-widget]").style.display = "none";
   });
-  dom.on(dom.query("[data-action='to-savings']"), "click", () => openTransferModal("to-savings", "CDF"));
-  dom.on(dom.query("[data-action='from-savings']"), "click", () => openTransferModal("from-savings", "CDF"));
-  dom.on(dom.query("[data-action='to-savings-quick']"), "click", () => openTransferModal("to-savings", "CDF"));
 
   /* ── Conversion widget ── */
 

@@ -144,6 +144,8 @@
   transition: var(--transition-sidebar);
   overflow-x: hidden;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 [data-theme="dark"] .app-sidebar {
@@ -173,6 +175,7 @@
 .app-nav {
   display: grid;
   gap: 0.45rem;
+  flex: 1;
 }
 
 .app-nav a {
@@ -459,4 +462,43 @@
 .app-sidebar,
 .app-layout {
   transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══ Sidebar mode toggle (simple/advanced) ═══ */
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.sidebar-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.sidebar-mode-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--color-brand-strong);
+}
+.sidebar-mode-toggle i {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.app-sidebar.collapsed .sidebar-mode-toggle .nav-label {
+  display: none;
+}
+
+/* Simple mode: hide advanced items */
+.app-sidebar.sidebar-mode-simple [data-mode-group="advanced"] {
+  display: none;
 }
