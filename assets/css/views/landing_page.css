@@ -481,3 +481,249 @@
     flex-direction: column;
   }
 }
+
+@media (max-width: 480px) {
+  /* --- Centrage de tous les éléments --- */
+  .hero-grid {
+    text-align: center;
+    justify-items: center;
+    padding: 0;
+  }
+
+  .hero-copy,
+  .hero-copy .eyebrow,
+  .hero-copy .hero-lead {
+    text-align: center;
+  }
+
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-visual {
+    justify-self: center;
+  }
+
+  .section-heading {
+    margin-bottom: 2rem;
+  }
+
+  .feature-grid,
+  .step-grid {
+    justify-items: center;
+  }
+
+  .feature-card,
+  .step-card {
+    text-align: center;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .cta-panel {
+    text-align: center;
+  }
+
+  .cta-panel a.btn {
+    width: 100%;
+  }
+
+  .security-grid {
+    text-align: center;
+  }
+
+  .security-list div {
+    justify-content: center;
+    text-align: left;
+  }
+
+  /* --- Réduction de taille des éléments --- */
+  .hero-section {
+    min-height: auto;
+    padding-top: 2.5rem;
+    padding-bottom: 2rem;
+  }
+
+  .hero-copy h1 {
+    font-size: 1.85rem;
+    line-height: 1.08;
+  }
+
+  .hero-lead {
+    font-size: 0.95rem;
+    margin-top: 1rem;
+  }
+
+  .hero-stats {
+    gap: 0.65rem;
+    margin: 1.5rem 0 0;
+  }
+
+  .hero-stats dt {
+    font-size: 1.15rem;
+  }
+
+  .hero-stats dd {
+    font-size: 0.78rem;
+  }
+
+  .hero-stats div {
+    padding: 0.7rem;
+  }
+
+  .hero-stage {
+    width: min(100%, 300px);
+    min-height: 380px;
+  }
+
+  .phone-card {
+    padding: 1.1rem;
+  }
+
+  .phone-card strong {
+    font-size: 1.6rem;
+  }
+
+  .icon-box {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 1rem;
+    border-radius: 14px;
+    font-size: 1.5rem;
+  }
+
+  .feature-card {
+    min-height: auto;
+    padding: 1.1rem;
+  }
+
+  .feature-card h3,
+  .step-card h3 {
+    font-size: 1.05rem;
+  }
+
+  .step-card {
+    padding: 1.2rem;
+  }
+
+  .step-card span {
+    font-size: 1.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-heading h2,
+  .cta-panel h2,
+  .security-grid h2 {
+    font-size: 1.65rem;
+  }
+
+  .section-heading p {
+    font-size: 0.92rem;
+  }
+
+  .partner-track img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .partner-marquee {
+    padding: 0.65rem 0;
+  }
+
+  /* === Glassmorphism — mode clair (light) === */
+  .hero-stats div,
+  html:not(.dark) .hero-stats div {
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+  }
+
+  .feature-card,
+  .step-card,
+  html:not(.dark) .feature-card,
+  html:not(.dark) .step-card {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-md);
+  }
+
+  .security-grid,
+  html:not(.dark) .security-grid {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .security-list div,
+  html:not(.dark) .security-list div {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .partner-marquee,
+  html:not(.dark) .partner-marquee {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .phone-card,
+  html:not(.dark) .phone-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  /* === Glassmorphism — mode dark === */
+  html.dark .hero-stats div {
+    background: rgba(14, 25, 20, 0.88);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(227, 235, 231, 0.1);
+  }
+
+  html.dark .feature-card,
+  html.dark .step-card {
+    background: rgba(14, 25, 20, 0.9);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(227, 235, 231, 0.1);
+    box-shadow: var(--shadow-md);
+  }
+
+  html.dark .security-grid {
+    background: rgba(14, 25, 20, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  html.dark .security-list div {
+    background: rgba(14, 25, 20, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  html.dark .partner-marquee {
+    background: rgba(14, 25, 20, 0.88);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  html.dark .phone-card {
+    background: rgba(14, 25, 20, 0.85);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(227, 235, 231, 0.12);
+  }
+}
